@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-  // Standard Vite configuration - remove incorrect 'public' root
   server: {
     port: 3000,
     open: true,
@@ -24,42 +23,71 @@ export default defineConfig({
     },
   },
   build: {
-    // Fix build output path
     outDir: 'dist',
     sourcemap: true,
-    // Bundle optimization
+    target: 'esnext', // Modern browsers only
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separate Three.js into its own chunk
-          three: ['three'],
-          // Separate large libraries
-          vendor: ['airtable'],
-          // Device-specific chunks
-          'three-loaders': [
-            'three/examples/jsm/loaders/GLTFLoader.js',
-            'three/examples/jsm/loaders/FBXLoader.js',
-            'three/examples/jsm/loaders/OBJLoader.js',
-          ],
-          'three-controls': ['three/examples/jsm/controls/OrbitControls.js'],
+        // Intelligent chunking strategy (2025 best practices)
+        manualChunks(id) {
+          // Core Three.js library
+          if (id.includes('three') && !id.includes('three/examples')) {
+            return 'three-core';
+          }
+          // Three.js examples (loaders, controls) - group together since they're small
+          if (id.includes('three/examples')) {
+            return 'three-addons';
+          }
+          // Airtable SDK
+          if (id.includes('airtable')) {
+            return 'airtable';
+          }
+          // App services and utilities
+          if (id.includes('src/services') || id.includes('src/utils')) {
+            return 'app-services';
+          }
+          // Viewer components
+          if (id.includes('src/viewer')) {
+            return 'viewer';
+          }
+          // All other vendor libraries
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
+        // Optimize output file names for better caching
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
-    // Enable tree shaking
+    chunkSizeWarningLimit: 800, // More aggressive limit
     minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log'],
+        pure_funcs: ['console.log', 'console.warn'],
+        passes: 2, // Multiple passes for better optimization
+        unsafe_arrows: true, // Modern optimization
+        unsafe_methods: true,
+        unsafe_proto: true,
+      },
+      mangle: {
+        properties: {
+          regex: /^_/, // Mangle private properties
+        },
+      },
+      format: {
+        comments: false, // Remove all comments
       },
     },
   },
-  // Enable tree shaking and optimization
   optimizeDeps: {
     include: ['three', 'airtable'],
+    // Pre-bundle these for faster dev startup
+    force: true,
   },
   // Resolve configuration for better imports
   resolve: {

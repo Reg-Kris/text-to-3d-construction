@@ -5,6 +5,7 @@
  */
 
 import { ApiClient } from './api-client';
+import { logger } from './utils/logger';
 
 export interface MeshyTask {
   id: string;
@@ -188,7 +189,7 @@ export class MeshyAPI {
 
       return completedRefine;
     } catch (error) {
-      console.error('Meshy API error:', error);
+      logger.error('Meshy API request failed', 'MeshyAPI', error);
       throw error;
     }
   }

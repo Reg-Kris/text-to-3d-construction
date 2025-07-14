@@ -4,15 +4,14 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { AirtableBase } from './airtable-base';
+import { AirtableProxyClient } from './airtable-proxy-client';
 import { ProjectRecord } from '../types';
+import { logger } from '../utils/logger';
 
 export class ProjectService {
   static async createProject(
     record: Omit<ProjectRecord, 'id' | 'created_at' | 'download_count'>,
   ): Promise<ProjectRecord> {
-    const base = AirtableBase.getBase();
-
     const projectData = {
       user_email: record.user_email,
       prompt: record.prompt,
@@ -29,13 +28,13 @@ export class ProjectService {
     };
 
     try {
-      const createdRecord = await base('Projects').create(projectData);
+      const createdRecord = await AirtableProxyClient.createRecord('Projects', projectData);
       return {
         id: createdRecord.id,
-        ...projectData,
+        ...createdRecord.fields,
       } as ProjectRecord;
     } catch (error) {
-      console.error('Failed to create project:', error);
+      logger.error('Failed to create project in database', 'ProjectService', error);
       throw new Error('Failed to save project to database');
     }
   }
@@ -44,8 +43,6 @@ export class ProjectService {
     id: string,
     updates: Partial<ProjectRecord>,
   ): Promise<ProjectRecord> {
-    const base = AirtableBase.getBase();
-
     // Convert nested objects to strings for Airtable
     const airtableUpdates: any = { ...updates };
     if (updates.model_urls) {
@@ -56,7 +53,7 @@ export class ProjectService {
     }
 
     try {
-      const updatedRecord = await base('Projects').update(id, airtableUpdates);
+      const updatedRecord = await AirtableProxyClient.updateRecord('Projects', id, airtableUpdates);
       const fields = updatedRecord.fields as any;
 
       return {
@@ -71,7 +68,7 @@ export class ProjectService {
           : undefined,
       } as ProjectRecord;
     } catch (error) {
-      console.error('Failed to update project:', error);
+      logger.error('Failed to update project in database', 'ProjectService', error);
       throw new Error('Failed to update project in database');
     }
   }
@@ -80,18 +77,14 @@ export class ProjectService {
     userEmail: string,
     limit: number = 20,
   ): Promise<ProjectRecord[]> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Projects')
-        .select({
-          filterByFormula: `{user_email} = '${userEmail}'`,
-          maxRecords: limit,
-          sort: [{ field: 'created_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await AirtableProxyClient.getRecords('Projects', {
+        filterByFormula: `{user_email} = '${userEmail}'`,
+        maxRecords: limit,
+        sort: [{ field: 'created_at', direction: 'desc' }],
+      });
 
-      return records.map((record) => ({
+      return response.records.map((record) => ({
         id: record.id,
         ...record.fields,
         // Parse JSON strings back to objects if they exist
@@ -103,16 +96,14 @@ export class ProjectService {
           : undefined,
       })) as ProjectRecord[];
     } catch (error) {
-      console.error('Failed to fetch user projects:', error);
+      logger.error('Failed to fetch user projects from database', 'ProjectService', error);
       throw new Error('Failed to load project history');
     }
   }
 
   static async getProject(id: string): Promise<ProjectRecord | null> {
-    const base = AirtableBase.getBase();
-
     try {
-      const record = await base('Projects').find(id);
+      const record = await AirtableProxyClient.getRecord('Projects', id);
       return {
         id: record.id,
         ...record.fields,
@@ -125,18 +116,16 @@ export class ProjectService {
           : undefined,
       } as ProjectRecord;
     } catch (error) {
-      console.error('Failed to fetch project:', error);
+      logger.error('Failed to fetch project from database', 'ProjectService', error);
       return null;
     }
   }
 
   static async deleteProject(id: string): Promise<void> {
-    const base = AirtableBase.getBase();
-
     try {
-      await base('Projects').destroy(id);
+      await AirtableProxyClient.deleteRecord('Projects', id);
     } catch (error) {
-      console.error('Failed to delete project:', error);
+      logger.error('Failed to delete project from database', 'ProjectService', error);
       throw new Error('Failed to delete project from database');
     }
   }
@@ -147,17 +136,13 @@ export class ProjectService {
     avgGenerationTime: number;
     popularDeviceTypes: Record<string, number>;
   }> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Projects')
-        .select({
-          maxRecords: 1000, // Limit for performance
-          sort: [{ field: 'created_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await AirtableProxyClient.getRecords('Projects', {
+        maxRecords: 1000, // Limit for performance
+        sort: [{ field: 'created_at', direction: 'desc' }],
+      });
 
-      const projects = records.map((record) => ({
+      const projects = response.records.map((record) => ({
         id: record.id,
         ...record.fields,
         // Parse JSON strings back to objects if they exist
@@ -200,7 +185,7 @@ export class ProjectService {
         popularDeviceTypes: deviceTypes,
       };
     } catch (error) {
-      console.error('Failed to fetch analytics:', error);
+      logger.error('Failed to fetch project analytics', 'ProjectService', error);
       return {
         totalProjects: 0,
         successRate: 0,

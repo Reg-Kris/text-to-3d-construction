@@ -36,5 +36,5 @@ export interface ViewerSettings {
 export type { User } from '../auth';
 export type { MeshyTask, GenerationRequest } from '../meshy-api';
 export type { ProjectRecord, DownloadRecord } from '../airtable-service';
-export type { ModelInfo, ViewerConfig } from '../three-viewer';
+export type { ModelInfo, ViewerConfig } from '../viewer/three-viewer';
 export type { DeviceInfo } from '../device-utils';

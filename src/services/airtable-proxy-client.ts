@@ -203,4 +203,18 @@ export class AirtableProxyClient {
 
     return allRecords;
   }
+
+  /**
+   * Delete a record
+   */
+  static async deleteRecord(tableName: string, recordId: string): Promise<void> {
+    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}/${recordId}`;
+    const response = await ApiClient.airtableDelete(path);
+
+    if (!response.success) {
+      throw new Error(
+        `Failed to delete ${tableName} record: ${response.error || response.message}`,
+      );
+    }
+  }
 }

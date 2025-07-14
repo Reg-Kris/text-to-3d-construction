@@ -6,13 +6,14 @@
 
 import { validateConfig } from '../config';
 import { AuthService } from '../auth';
-import { ThreeViewer } from '../three-viewer';
+import { ThreeViewer } from '../viewer/three-viewer';
 import { DeviceUtils } from '../device-utils';
 import { UIManager } from './ui-manager';
 import { GenerationManager } from './generation-manager';
 import { DownloadManager } from './download-manager';
 import { AppState, ViewerSettings } from '../types';
 import type { MeshyTask } from '../types';
+import { logger } from '../utils/logger';
 
 export class ConstructionApp {
   private state: AppState = {
@@ -59,6 +60,32 @@ export class ConstructionApp {
     if (this.state.currentUser) {
       this.showMainInterface();
     }
+
+    this.setupCharacterCounter();
+  }
+
+  private setupCharacterCounter() {
+    const prompt = document.getElementById('prompt') as HTMLTextAreaElement;
+    const charCount = document.getElementById('char-count');
+
+    if (prompt && charCount) {
+      const updateCharCount = () => {
+        const count = prompt.value.length;
+        charCount.textContent = count.toString();
+
+        // Change color based on usage
+        if (count > 500) {
+          charCount.style.color = '#dc3545'; // Red
+        } else if (count > 400) {
+          charCount.style.color = '#ffc107'; // Yellow
+        } else {
+          charCount.style.color = '#666'; // Gray
+        }
+      };
+
+      prompt.addEventListener('input', updateCharCount);
+      updateCharCount(); // Initial count
+    }
   }
 
   private async authenticate() {
@@ -69,7 +96,7 @@ export class ConstructionApp {
         return;
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication failed', 'ConstructionApp', error);
       this.uiManager.showError('Authentication failed. Please try again.');
     }
   }
@@ -93,7 +120,7 @@ export class ConstructionApp {
           backgroundColor: 0xf5f5f5,
         });
       } catch (error) {
-        console.error('Failed to initialize Three.js viewer:', error);
+        logger.error('Failed to initialize Three.js viewer', 'ConstructionApp', error);
         this.uiManager.showError(
           'Failed to initialize 3D viewer. Your browser may not support WebGL.',
         );
@@ -138,7 +165,7 @@ export class ConstructionApp {
 
       await this.displayModel(result.task);
     } catch (error) {
-      console.error('Generation error:', error);
+      logger.error('3D model generation failed', 'ConstructionApp', error);
       this.uiManager.showError(
         `Failed to generate model: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -169,7 +196,7 @@ export class ConstructionApp {
       this.uiManager.showModelInfo(modelInfo);
       this.uiManager.showDownloadOptions(task, this);
     } catch (error) {
-      console.error('Failed to display model:', error);
+      logger.error('Failed to display generated model', 'ConstructionApp', error);
       this.uiManager.showError(
         'Failed to load 3D model. Please try downloading the file directly.',
       );
@@ -205,7 +232,7 @@ export class ConstructionApp {
 
         this.uiManager.showSuccess('Screenshot saved successfully!');
       } catch (error) {
-        console.error('Screenshot failed:', error);
+        logger.error('Screenshot capture failed', 'ConstructionApp', error);
         this.uiManager.showError('Failed to take screenshot.');
       }
     }
@@ -244,7 +271,7 @@ export class ConstructionApp {
         `${extension.toUpperCase()} file downloaded successfully!`,
       );
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Model download failed', 'ConstructionApp', error);
       this.uiManager.showError('Failed to download model. Please try again.');
     }
   }

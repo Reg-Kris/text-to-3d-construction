@@ -161,6 +161,10 @@ export class ApiClient {
     );
   }
 
+  static async airtableDelete<T = any>(path: string): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(path, { method: 'DELETE' }, 'airtable');
+  }
+
   // Health check for proxy
   static async checkConnection(): Promise<boolean> {
     try {

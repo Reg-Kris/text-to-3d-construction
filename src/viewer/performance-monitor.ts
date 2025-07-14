@@ -6,6 +6,7 @@
 
 import { DeviceInfo } from '../device-utils';
 import { LODSystem } from './lod-system';
+import { logger } from '../utils/logger';
 
 export interface PerformanceStats {
   frameRate: number;
@@ -76,35 +77,29 @@ export class PerformanceMonitor {
       // Enable more aggressive LOD if performance is poor
       if (this.lodSystem && !this.lodSystem.isEnabled()) {
         this.lodSystem.toggleLOD(true);
-        console.log(
-          'Performance LOD enabled due to low frame rate:',
-          this.stats.frameRate,
-        );
+        logger.info(`Performance LOD enabled due to low frame rate: ${this.stats.frameRate}fps`, 'PerformanceMonitor');
       }
     } else if (this.stats.frameRate > 55 && this.deviceInfo.isDesktop) {
       // Disable LOD if performance is very good on desktop
       if (this.lodSystem && this.lodSystem.isEnabled()) {
         this.lodSystem.toggleLOD(false);
-        console.log(
-          'Performance LOD disabled due to high frame rate:',
-          this.stats.frameRate,
-        );
+        logger.info(`Performance LOD disabled due to high frame rate: ${this.stats.frameRate}fps`, 'PerformanceMonitor');
       }
     }
 
     // Log performance warnings
     if (this.stats.frameRate < 20) {
-      console.warn('Low frame rate detected:', this.stats.frameRate);
+      logger.warn(`Low frame rate detected: ${this.stats.frameRate}fps`, 'PerformanceMonitor');
     }
 
     if (this.stats.renderTime > 16) {
       // 16ms = 60fps
-      console.warn('High render time detected:', this.stats.renderTime);
+      logger.warn(`High render time detected: ${this.stats.renderTime}ms`, 'PerformanceMonitor');
     }
 
     if (this.stats.memoryUsage > 100) {
       // 100MB threshold
-      console.warn('High memory usage detected:', this.stats.memoryUsage);
+      logger.warn(`High memory usage detected: ${this.stats.memoryUsage}MB`, 'PerformanceMonitor');
     }
   }
 
