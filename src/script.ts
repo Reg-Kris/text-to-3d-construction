@@ -7,10 +7,14 @@
 import { validateConfig } from './config';
 import { AuthService, User } from './auth';
 import { MeshyAPI, GenerationRequest, MeshyTask } from './meshy-api';
+import { AirtableService, ProjectRecord } from './airtable-service';
+import { DeviceUtils } from './device-utils';
 
 class ConstructionApp {
   private currentUser: User | null = null;
   private currentTask: MeshyTask | null = null;
+  private currentProject: ProjectRecord | null = null;
+  private generationStartTime: number = 0;
 
   constructor() {
     this.init();
@@ -52,7 +56,11 @@ class ConstructionApp {
     const container = document.querySelector('.container');
     if (!container) return;
 
-    // Add welcome message
+    // Get device info and warnings
+    const deviceInfo = DeviceUtils.getDeviceInfo();
+    const warnings = DeviceUtils.getPerformanceWarnings();
+
+    // Add welcome message with device optimization info
     const welcomeDiv = document.createElement('div');
     welcomeDiv.className = 'welcome-section';
     welcomeDiv.innerHTML = `
@@ -60,12 +68,46 @@ class ConstructionApp {
         <span>Welcome, ${this.currentUser?.name}</span>
         <button onclick="app.logout()" class="logout-btn">Logout</button>
       </div>
+      <div class="device-info">
+        <small>Device: ${deviceInfo.type} | Max polygons: ${deviceInfo.maxPolyCount.toLocaleString()} | File limit: ${deviceInfo.maxFileSizeMB}MB</small>
+        ${warnings.length > 0 ? `<div class="warnings">${warnings.map(w => `<div class="warning">⚠️ ${w}</div>`).join('')}</div>` : ''}
+      </div>
     `;
     
     container.insertBefore(welcomeDiv, container.firstChild);
 
+    // Add quality settings if supported
+    if (DeviceUtils.shouldShowQualityOptions()) {
+      this.addQualitySettings();
+    }
+
     // Show the main interface
     document.body.style.display = 'block';
+  }
+
+  private addQualitySettings() {
+    const inputSection = document.querySelector('.input-section');
+    if (!inputSection) return;
+
+    const qualityDiv = document.createElement('div');
+    qualityDiv.className = 'quality-settings';
+    qualityDiv.innerHTML = `
+      <div class="settings-row">
+        <label for="quality-select">Quality:</label>
+        <select id="quality-select">
+          <option value="medium" selected>Balanced (Recommended)</option>
+          <option value="low">Fast (Lower Quality)</option>
+          <option value="high">High Quality (Slower)</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>
+          <input type="checkbox" id="prioritize-speed"> Prioritize Speed
+        </label>
+      </div>
+    `;
+    
+    inputSection.appendChild(qualityDiv);
   }
 
   async generateModel() {
@@ -88,15 +130,40 @@ class ConstructionApp {
       return;
     }
 
-    this.showLoading('Generating 3D model...');
+    // Get quality settings
+    const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
+    const prioritizeSpeedCheckbox = document.getElementById('prioritize-speed') as HTMLInputElement;
+    
+    const quality = qualitySelect?.value as 'low' | 'medium' | 'high' || 'medium';
+    const prioritizeSpeed = prioritizeSpeedCheckbox?.checked || false;
+
+    // Get optimized settings based on device and user preferences
+    const deviceSettings = DeviceUtils.getOptimizedSettings({ quality, prioritizeSpeed });
+    const deviceInfo = DeviceUtils.getDeviceInfo();
+
+    this.showLoading('Initializing generation...');
     this.hideViewer();
     this.hideDownload();
+    this.generationStartTime = Date.now();
 
     try {
+      // Create project record in Airtable
+      this.currentProject = await AirtableService.createProject({
+        user_email: this.currentUser.email,
+        prompt: prompt,
+        status: 'generating',
+        device_type: deviceInfo.type,
+        art_style: 'realistic',
+        polygon_count: deviceSettings.targetPolyCount
+      });
+
       const request: GenerationRequest = {
         prompt: prompt,
         artStyle: 'realistic',
-        enablePBR: true
+        enablePBR: deviceSettings.enablePBR,
+        targetPolyCount: deviceSettings.targetPolyCount,
+        topology: deviceSettings.topology,
+        enableRemesh: deviceSettings.enableRemesh
       };
 
       // Generate the model using Meshy API with progress tracking
@@ -104,11 +171,30 @@ class ConstructionApp {
         this.updateProgress(stage, progress);
       });
       
+      // Update project with completion data
+      const generationTime = Math.round((Date.now() - this.generationStartTime) / 1000);
+      if (this.currentProject) {
+        await AirtableService.updateProject(this.currentProject.id!, {
+          status: 'completed',
+          model_urls: this.currentTask.model_urls,
+          generation_time_seconds: generationTime,
+          thumbnail_url: this.currentTask.thumbnail_url
+        });
+      }
+      
       // Display the model
       this.displayModel(this.currentTask);
       
     } catch (error) {
       console.error('Generation error:', error);
+      
+      // Update project with failure status
+      if (this.currentProject) {
+        await AirtableService.updateProject(this.currentProject.id!, {
+          status: 'failed'
+        }).catch(console.error);
+      }
+      
       this.showError(`Failed to generate model: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       this.hideLoading();
@@ -136,25 +222,47 @@ class ConstructionApp {
     const downloadSection = document.getElementById('download-section');
     if (!downloadSection || !task.model_urls) return;
 
+    const deviceInfo = DeviceUtils.getDeviceInfo();
+    const recommendedFormat = DeviceUtils.getRecommendedFormat();
+
     const formats = [
-      { key: 'glb', label: 'GLB (Recommended for Unreal Engine 5)', extension: 'glb' },
-      { key: 'fbx', label: 'FBX (Traditional Unreal Engine)', extension: 'fbx' },
-      { key: 'usdz', label: 'USDZ (Universal Scene Description)', extension: 'usdz' },
-      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj' }
+      { key: 'glb', label: 'GLB (Recommended for Unreal Engine 5)', extension: 'glb', size: 'Unknown' },
+      { key: 'fbx', label: 'FBX (Traditional Unreal Engine)', extension: 'fbx', size: 'Unknown' },
+      { key: 'usdz', label: 'USDZ (Universal Scene Description)', extension: 'usdz', size: 'Unknown' },
+      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj', size: 'Unknown' }
     ];
 
-    const buttonsHTML = formats
-      .filter(format => task.model_urls![format.key as keyof typeof task.model_urls])
-      .map(format => `
-        <button onclick="app.downloadModel('${task.model_urls![format.key as keyof typeof task.model_urls]}', '${format.extension}')" 
-                class="download-btn">
-          Download ${format.label}
-        </button>
-      `).join('');
+    const availableFormats = formats.filter(format => {
+      const hasUrl = task.model_urls![format.key as keyof typeof task.model_urls];
+      const isSupported = deviceInfo.recommendedFormats.includes(format.key);
+      return hasUrl && (deviceInfo.isDesktop || isSupported);
+    });
+
+    const buttonsHTML = availableFormats
+      .map(format => {
+        const isRecommended = format.key === recommendedFormat;
+        const estimatedTime = DeviceUtils.estimateLoadTime(deviceInfo.maxFileSizeMB * 0.7); // Rough estimate
+        
+        return `
+          <div class="download-option">
+            <button onclick="app.downloadModel('${task.model_urls![format.key as keyof typeof task.model_urls]}', '${format.extension}')" 
+                    class="download-btn ${isRecommended ? 'recommended' : ''}">
+              ${isRecommended ? '⭐ ' : ''}Download ${format.label}
+            </button>
+            <div class="download-info">
+              <small>Est. download time: ${estimatedTime}</small>
+              ${isRecommended ? '<span class="badge">Recommended</span>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
 
     downloadSection.innerHTML = `
       <div class="download-options">
         <h3>Download Options</h3>
+        <div class="device-notice">
+          <small>Optimized for ${deviceInfo.type} devices (${deviceInfo.maxFileSizeMB}MB limit)</small>
+        </div>
         ${buttonsHTML}
       </div>
     `;
@@ -165,10 +273,43 @@ class ConstructionApp {
   async downloadModel(url: string, extension: string) {
     try {
       const filename = `construction-model-${Date.now()}.${extension}`;
+      
+      // Record download in Airtable
+      if (this.currentProject && this.currentUser) {
+        const deviceInfo = DeviceUtils.getDeviceInfo();
+        await AirtableService.recordDownload({
+          project_id: this.currentProject.id!,
+          user_email: this.currentUser.email,
+          format: extension,
+          device_type: deviceInfo.type
+        });
+      }
+      
       await MeshyAPI.downloadModel(url, filename);
+      
+      // Show success message
+      this.showSuccess(`${extension.toUpperCase()} file downloaded successfully!`);
+      
     } catch (error) {
       console.error('Download error:', error);
       this.showError('Failed to download model. Please try again.');
+    }
+  }
+
+  private showSuccess(message: string) {
+    // Create a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    
+    const container = document.querySelector('.container');
+    if (container) {
+      container.appendChild(successDiv);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        successDiv.remove();
+      }, 3000);
     }
   }
 

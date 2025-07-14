@@ -26,6 +26,16 @@ export interface GenerationRequest {
   artStyle?: 'realistic' | 'sculpture';
   enablePBR?: boolean;
   seed?: number;
+  targetPolyCount?: number;
+  topology?: 'quad' | 'triangle';
+  enableRemesh?: boolean;
+}
+
+export interface DeviceCapabilities {
+  isMobile: boolean;
+  maxPolyCount: number;
+  maxFileSizeMB: number;
+  supportedFormats: string[];
 }
 
 export class MeshyAPI {
@@ -35,13 +45,35 @@ export class MeshyAPI {
     'Content-Type': 'application/json',
   };
 
+  // Detect device capabilities
+  static getDeviceCapabilities(): DeviceCapabilities {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isTablet = /iPad|Android.*tablet/i.test(navigator.userAgent);
+    
+    return {
+      isMobile: isMobile && !isTablet,
+      maxPolyCount: isMobile ? 8000 : isTablet ? 12000 : 30000,
+      maxFileSizeMB: isMobile ? 10 : isTablet ? 15 : 25,
+      supportedFormats: isMobile ? ['glb'] : ['glb', 'fbx', 'obj', 'usdz']
+    };
+  }
+
   // Stage 1: Create preview task
   static async createPreviewTask(request: GenerationRequest): Promise<MeshyTask> {
+    const capabilities = this.getDeviceCapabilities();
+    const optimizedPolyCount = Math.min(
+      request.targetPolyCount || capabilities.maxPolyCount,
+      capabilities.maxPolyCount
+    );
+
     const payload = {
       mode: 'preview',
       prompt: request.prompt,
       art_style: request.artStyle || 'realistic',
       enable_pbr: request.enablePBR || true,
+      target_polycount: optimizedPolyCount,
+      topology: request.topology || 'triangle',
+      enable_remesh: request.enableRemesh !== false,
       ...(request.seed && { seed: request.seed })
     };
 

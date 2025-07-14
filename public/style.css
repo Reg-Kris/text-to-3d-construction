@@ -188,6 +188,165 @@ model-viewer {
   border: 1px solid #f5c6cb;
 }
 
+/* Device Info and Warnings */
+.device-info {
+  margin-top: 10px;
+  color: #666;
+}
+
+.warnings {
+  margin-top: 10px;
+}
+
+.warning {
+  background: #fff3cd;
+  color: #856404;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-left: 4px solid #ffc107;
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+/* Quality Settings */
+.quality-settings {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 15px;
+  border: 1px solid #dee2e6;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.settings-row label {
+  font-weight: bold;
+  min-width: 80px;
+}
+
+.settings-row select {
+  flex: 1;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.settings-row input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* Enhanced Download Options */
+.download-options {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.download-options h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.device-notice {
+  background: #e3f2fd;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.download-option {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  background: white;
+}
+
+.download-option:last-child {
+  margin-bottom: 0;
+}
+
+.download-btn {
+  background: #28a745;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+  transition: background-color 0.3s;
+  margin-bottom: 8px;
+}
+
+.download-btn:hover {
+  background: #218838;
+}
+
+.download-btn.recommended {
+  background: #007bff;
+  font-weight: bold;
+}
+
+.download-btn.recommended:hover {
+  background: #0056b3;
+}
+
+.download-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.badge {
+  background: #007bff;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Success Messages */
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 5px;
+  margin: 15px 0;
+  border: 1px solid #c3e6cb;
+  text-align: center;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Enhanced Progress Bar */
+.progress-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #007bff;
+  margin-top: 5px;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
   .container {
@@ -199,9 +358,41 @@ model-viewer {
     gap: 10px;
   }
   
-  .download-btn {
-    display: block;
+  .settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .settings-row label {
+    min-width: auto;
+  }
+  
+  .settings-row select {
     width: 100%;
-    margin: 5px 0;
+  }
+  
+  .download-info {
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+  }
+  
+  .device-info small {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quality-settings {
+    padding: 10px;
+  }
+  
+  .download-options {
+    padding: 15px;
+  }
+  
+  .download-option {
+    padding: 8px;
   }
 }

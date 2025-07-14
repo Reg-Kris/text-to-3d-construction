@@ -7,6 +7,8 @@
 import './config';
 import './auth';
 import './meshy-api';
+import './airtable-service';
+import './device-utils';
 import './script';
 
 // Add character counter functionality

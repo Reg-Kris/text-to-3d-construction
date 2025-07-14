@@ -9,7 +9,7 @@ export const API_CONFIG = {
   AIRTABLE_API_KEY: import.meta.env.VITE_AIRTABLE_API_KEY || 'your-airtable-api-key-here',
   AIRTABLE_BASE_ID: import.meta.env.VITE_AIRTABLE_BASE_ID || 'your-airtable-base-id',
   ALLOWED_EMAILS: (import.meta.env.VITE_ALLOWED_EMAILS || 'gerasimovkris@gmail.com').split(','),
-  MESHY_API_URL: 'https://api.meshy.ai/openapi/v2',
+  MESHY_API_URL: 'https://api.meshy.ai/openapi/v1',
   AIRTABLE_API_URL: 'https://api.airtable.com/v0'
 };
 
