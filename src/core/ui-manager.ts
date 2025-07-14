@@ -24,10 +24,10 @@ export class UIManager {
       </div>
       <div class="device-info">
         <small>Device: ${deviceInfo.type} | Max polygons: ${deviceInfo.maxPolyCount.toLocaleString()} | File limit: ${deviceInfo.maxFileSizeMB}MB</small>
-        ${warnings.length > 0 ? `<div class="warnings">${warnings.map(w => `<div class="warning">⚠️ ${w}</div>`).join('')}</div>` : ''}
+        ${warnings.length > 0 ? `<div class="warnings">${warnings.map((w) => `<div class="warning">⚠️ ${w}</div>`).join('')}</div>` : ''}
       </div>
     `;
-    
+
     container.insertBefore(welcomeDiv, container.firstChild);
 
     if (DeviceUtils.shouldShowQualityOptions()) {
@@ -56,13 +56,13 @@ export class UIManager {
         </label>
       </div>
     `;
-    
+
     inputSection.appendChild(qualityDiv);
   }
 
   createOrGetViewerContainer(): HTMLElement | null {
     let viewerContainer = document.getElementById('viewer-container');
-    
+
     if (!viewerContainer) {
       const outputSection = document.querySelector('.output-section');
       if (outputSection) {
@@ -74,14 +74,14 @@ export class UIManager {
         container.style.border = '1px solid #ddd';
         container.style.borderRadius = '5px';
         container.style.marginBottom = '20px';
-        
+
         const downloadSection = document.getElementById('download-section');
         if (downloadSection) {
           outputSection.insertBefore(container, downloadSection);
         } else {
           outputSection.appendChild(container);
         }
-        
+
         viewerContainer = container;
       }
     }
@@ -101,14 +101,14 @@ export class UIManager {
     if (viewerContainer) {
       viewerContainer.style.display = 'none';
     }
-    
+
     const modelInfo = document.querySelector('.model-info');
     if (modelInfo) {
       modelInfo.remove();
     }
   }
 
-  addViewerControls(app: any) {
+  addViewerControls(_app: any) {
     const viewerContainer = document.getElementById('viewer-container');
     if (!viewerContainer) return;
 
@@ -128,7 +128,10 @@ export class UIManager {
         <button class="viewer-btn" onclick="app.resetCamera()">Reset</button>
         <button class="viewer-btn" onclick="app.takeScreenshot()">📷</button>
       </div>
-      ${DeviceUtils.getDeviceInfo().isMobile || DeviceUtils.getDeviceInfo().isTablet ? `
+      ${
+        DeviceUtils.getDeviceInfo().isMobile ||
+        DeviceUtils.getDeviceInfo().isTablet
+          ? `
         <div class="control-group">
           <button class="viewer-btn" onclick="app.toggleLOD()" id="lod-toggle">LOD: ON</button>
           <select class="viewer-select" onchange="app.setLODLevel(this.value)" id="lod-level">
@@ -137,16 +140,18 @@ export class UIManager {
             <option value="2">Low Quality</option>
           </select>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
-    
+
     viewerContainer.appendChild(controlsDiv);
   }
 
   showModelInfo(info: ModelInfo) {
     const deviceInfo = DeviceUtils.getDeviceInfo();
     const isHighPoly = info.triangles > deviceInfo.maxPolyCount;
-    
+
     const infoDiv = document.createElement('div');
     infoDiv.className = 'model-info';
     infoDiv.innerHTML = `
@@ -172,11 +177,14 @@ export class UIManager {
 
     const viewerContainer = document.getElementById('viewer-container');
     if (viewerContainer && viewerContainer.parentNode) {
-      viewerContainer.parentNode.insertBefore(infoDiv, viewerContainer.nextSibling);
+      viewerContainer.parentNode.insertBefore(
+        infoDiv,
+        viewerContainer.nextSibling,
+      );
     }
   }
 
-  showDownloadOptions(task: MeshyTask, app: any) {
+  showDownloadOptions(task: MeshyTask, _app: any) {
     const downloadSection = document.getElementById('download-section');
     if (!downloadSection || !task.model_urls) return;
 
@@ -184,23 +192,38 @@ export class UIManager {
     const recommendedFormat = DeviceUtils.getRecommendedFormat();
 
     const formats = [
-      { key: 'glb', label: 'GLB (Recommended for Unreal Engine 5)', extension: 'glb' },
-      { key: 'fbx', label: 'FBX (Traditional Unreal Engine)', extension: 'fbx' },
-      { key: 'usdz', label: 'USDZ (Universal Scene Description)', extension: 'usdz' },
-      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj' }
+      {
+        key: 'glb',
+        label: 'GLB (Recommended for Unreal Engine 5)',
+        extension: 'glb',
+      },
+      {
+        key: 'fbx',
+        label: 'FBX (Traditional Unreal Engine)',
+        extension: 'fbx',
+      },
+      {
+        key: 'usdz',
+        label: 'USDZ (Universal Scene Description)',
+        extension: 'usdz',
+      },
+      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj' },
     ];
 
-    const availableFormats = formats.filter(format => {
-      const hasUrl = task.model_urls![format.key as keyof typeof task.model_urls];
+    const availableFormats = formats.filter((format) => {
+      const hasUrl =
+        task.model_urls![format.key as keyof typeof task.model_urls];
       const isSupported = deviceInfo.recommendedFormats.includes(format.key);
       return hasUrl && (deviceInfo.isDesktop || isSupported);
     });
 
     const buttonsHTML = availableFormats
-      .map(format => {
+      .map((format) => {
         const isRecommended = format.key === recommendedFormat;
-        const estimatedTime = DeviceUtils.estimateLoadTime(deviceInfo.maxFileSizeMB * 0.7);
-        
+        const estimatedTime = DeviceUtils.estimateLoadTime(
+          deviceInfo.maxFileSizeMB * 0.7,
+        );
+
         return `
           <div class="download-option">
             <button onclick="app.downloadModel('${task.model_urls![format.key as keyof typeof task.model_urls]}', '${format.extension}')" 
@@ -213,7 +236,8 @@ export class UIManager {
             </div>
           </div>
         `;
-      }).join('');
+      })
+      .join('');
 
     downloadSection.innerHTML = `
       <div class="download-options">
@@ -224,7 +248,7 @@ export class UIManager {
         ${buttonsHTML}
       </div>
     `;
-    
+
     downloadSection.style.display = 'block';
   }
 
@@ -236,17 +260,23 @@ export class UIManager {
   }
 
   getPrompt(): string {
-    const promptElement = document.getElementById('prompt') as HTMLTextAreaElement;
+    const promptElement = document.getElementById(
+      'prompt',
+    ) as HTMLTextAreaElement;
     return promptElement?.value.trim() || '';
   }
 
   getQualitySettings(): QualitySettings {
-    const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
-    const prioritizeSpeedCheckbox = document.getElementById('prioritize-speed') as HTMLInputElement;
-    
+    const qualitySelect = document.getElementById(
+      'quality-select',
+    ) as HTMLSelectElement;
+    const prioritizeSpeedCheckbox = document.getElementById(
+      'prioritize-speed',
+    ) as HTMLInputElement;
+
     return {
       quality: (qualitySelect?.value as 'low' | 'medium' | 'high') || 'medium',
-      prioritizeSpeed: prioritizeSpeedCheckbox?.checked || false
+      prioritizeSpeed: prioritizeSpeedCheckbox?.checked || false,
     };
   }
 
@@ -270,9 +300,11 @@ export class UIManager {
     const loading = document.getElementById('loading');
     if (loading) {
       const messageEl = loading.querySelector('.loading-message');
-      const progressFill = loading.querySelector('.progress-fill') as HTMLElement;
+      const progressFill = loading.querySelector(
+        '.progress-fill',
+      ) as HTMLElement;
       const progressText = loading.querySelector('.progress-text');
-      
+
       if (messageEl) messageEl.textContent = stage;
       if (progressFill) progressFill.style.width = `${progress}%`;
       if (progressText) progressText.textContent = `${Math.round(progress)}%`;
@@ -295,11 +327,11 @@ export class UIManager {
     const successDiv = document.createElement('div');
     successDiv.className = 'success-message';
     successDiv.textContent = message;
-    
+
     const container = document.querySelector('.container');
     if (container) {
       container.appendChild(successDiv);
-      
+
       setTimeout(() => {
         successDiv.remove();
       }, 3000);

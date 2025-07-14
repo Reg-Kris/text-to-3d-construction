@@ -12,7 +12,7 @@ import { UIManager } from './ui-manager';
 import { GenerationManager } from './generation-manager';
 import { DownloadManager } from './download-manager';
 import { AppState, ViewerSettings } from '../types';
-import type { MeshyTask, QualitySettings } from '../types';
+import type { MeshyTask } from '../types';
 
 export class ConstructionApp {
   private state: AppState = {
@@ -21,7 +21,7 @@ export class ConstructionApp {
     currentProject: null,
     generationStartTime: 0,
     isGenerating: false,
-    isLoading: false
+    isLoading: false,
   };
 
   private threeViewer: ThreeViewer | null = null;
@@ -32,7 +32,7 @@ export class ConstructionApp {
     viewMode: 'perspective',
     lodEnabled: true,
     lodLevel: 1,
-    shadowsEnabled: true
+    shadowsEnabled: true,
   };
 
   constructor() {
@@ -44,12 +44,14 @@ export class ConstructionApp {
 
   private async init() {
     if (!validateConfig()) {
-      this.uiManager.showError('Application configuration is incomplete. Please contact support.');
+      this.uiManager.showError(
+        'Application configuration is incomplete. Please contact support.',
+      );
       return;
     }
 
     this.state.currentUser = AuthService.getCurrentUser();
-    
+
     if (!this.state.currentUser) {
       await this.authenticate();
     }
@@ -80,17 +82,21 @@ export class ConstructionApp {
 
   private initThreeViewer() {
     const viewerContainer = this.uiManager.createOrGetViewerContainer();
-    
+
     if (viewerContainer) {
       try {
         this.threeViewer = new ThreeViewer({
           container: viewerContainer,
-          enableShadows: this.viewerSettings.shadowsEnabled && !DeviceUtils.getDeviceInfo().isMobile,
-          backgroundColor: 0xf5f5f5
+          enableShadows:
+            this.viewerSettings.shadowsEnabled &&
+            !DeviceUtils.getDeviceInfo().isMobile,
+          backgroundColor: 0xf5f5f5,
         });
       } catch (error) {
         console.error('Failed to initialize Three.js viewer:', error);
-        this.uiManager.showError('Failed to initialize 3D viewer. Your browser may not support WebGL.');
+        this.uiManager.showError(
+          'Failed to initialize 3D viewer. Your browser may not support WebGL.',
+        );
       }
     }
   }
@@ -124,17 +130,18 @@ export class ConstructionApp {
       const result = await this.generationManager.generateModel(
         prompt,
         qualitySettings,
-        (stage, progress) => this.uiManager.updateProgress(stage, progress)
+        (stage, progress) => this.uiManager.updateProgress(stage, progress),
       );
 
       this.state.currentTask = result.task;
       this.state.currentProject = result.project;
 
       await this.displayModel(result.task);
-      
     } catch (error) {
       console.error('Generation error:', error);
-      this.uiManager.showError(`Failed to generate model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.uiManager.showError(
+        `Failed to generate model: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       this.state.isGenerating = false;
       this.uiManager.hideLoading();
@@ -149,21 +156,23 @@ export class ConstructionApp {
 
     try {
       this.uiManager.showLoading('Loading 3D model...');
-      
+
       const modelInfo = await this.threeViewer.loadModel(
-        task.model_urls.glb, 
-        'glb', 
-        (progress) => this.uiManager.updateProgress('Loading model...', progress)
+        task.model_urls.glb,
+        'glb',
+        (progress) =>
+          this.uiManager.updateProgress('Loading model...', progress),
       );
 
       this.uiManager.showViewer();
       this.uiManager.addViewerControls(this);
       this.uiManager.showModelInfo(modelInfo);
       this.uiManager.showDownloadOptions(task, this);
-      
     } catch (error) {
       console.error('Failed to display model:', error);
-      this.uiManager.showError('Failed to load 3D model. Please try downloading the file directly.');
+      this.uiManager.showError(
+        'Failed to load 3D model. Please try downloading the file directly.',
+      );
     } finally {
       this.uiManager.hideLoading();
     }
@@ -193,7 +202,7 @@ export class ConstructionApp {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         this.uiManager.showSuccess('Screenshot saved successfully!');
       } catch (error) {
         console.error('Screenshot failed:', error);
@@ -207,9 +216,11 @@ export class ConstructionApp {
       this.threeViewer.toggleLOD();
       const stats = this.threeViewer.getStats();
       this.viewerSettings.lodEnabled = stats.lod.enabled;
-      
+
       this.uiManager.updateLODButton(stats.lod.enabled);
-      this.uiManager.showSuccess(`LOD ${stats.lod.enabled ? 'enabled' : 'disabled'}`);
+      this.uiManager.showSuccess(
+        `LOD ${stats.lod.enabled ? 'enabled' : 'disabled'}`,
+      );
     }
   }
 
@@ -218,16 +229,20 @@ export class ConstructionApp {
       const levelNum = typeof level === 'string' ? parseInt(level) : level;
       this.viewerSettings.lodLevel = levelNum;
       this.threeViewer.setLODLevel(levelNum);
-      
+
       const qualityNames = ['High', 'Medium', 'Low'];
-      this.uiManager.showSuccess(`Quality set to ${qualityNames[levelNum] || 'Unknown'}`);
+      this.uiManager.showSuccess(
+        `Quality set to ${qualityNames[levelNum] || 'Unknown'}`,
+      );
     }
   }
 
   async downloadModel(url: string, extension: string) {
     try {
       await this.downloadManager.downloadModel(url, extension);
-      this.uiManager.showSuccess(`${extension.toUpperCase()} file downloaded successfully!`);
+      this.uiManager.showSuccess(
+        `${extension.toUpperCase()} file downloaded successfully!`,
+      );
     } catch (error) {
       console.error('Download error:', error);
       this.uiManager.showError('Failed to download model. Please try again.');
@@ -240,8 +255,16 @@ export class ConstructionApp {
   }
 
   // Getters for internal state access
-  getCurrentUser() { return this.state.currentUser; }
-  getCurrentTask() { return this.state.currentTask; }
-  getCurrentProject() { return this.state.currentProject; }
-  getViewerSettings() { return this.viewerSettings; }
+  getCurrentUser() {
+    return this.state.currentUser;
+  }
+  getCurrentTask() {
+    return this.state.currentTask;
+  }
+  getCurrentProject() {
+    return this.state.currentProject;
+  }
+  getViewerSettings() {
+    return this.viewerSettings;
+  }
 }

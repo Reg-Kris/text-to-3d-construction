@@ -17,15 +17,25 @@ export interface ApiResponse<T = any> {
 export class ApiClient {
   private static async makeRequest<T = any>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    apiType: 'meshy' | 'airtable' = 'meshy',
   ): Promise<ApiResponse<T>> {
     try {
       let url: string;
       let requestOptions: RequestInit;
 
-      if (API_CONFIG.USE_PROXY && API_CONFIG.PROXY_URL) {
-        // Use proxy for production
-        url = API_CONFIG.PROXY_URL;
+      if (API_CONFIG.USE_PROXY) {
+        // Use appropriate proxy
+        const proxyUrl =
+          apiType === 'meshy'
+            ? API_CONFIG.MESHY_PROXY_URL
+            : API_CONFIG.AIRTABLE_PROXY_URL;
+        const apiKey =
+          apiType === 'meshy'
+            ? API_CONFIG.MESHY_API_KEY
+            : API_CONFIG.AIRTABLE_API_KEY;
+
+        url = proxyUrl;
         requestOptions = {
           method: 'POST',
           headers: {
@@ -35,24 +45,33 @@ export class ApiClient {
             path,
             method: options.method || 'GET',
             body: options.body ? JSON.parse(options.body as string) : undefined,
-            apiKey: API_CONFIG.MESHY_API_KEY
-          })
+            apiKey: apiKey,
+          }),
         };
       } else {
         // Direct API call for development
-        url = `${API_CONFIG.MESHY_API_URL}${path}`;
+        const baseUrl =
+          apiType === 'meshy'
+            ? API_CONFIG.MESHY_API_URL
+            : API_CONFIG.AIRTABLE_API_URL;
+        const apiKey =
+          apiType === 'meshy'
+            ? API_CONFIG.MESHY_API_KEY
+            : API_CONFIG.AIRTABLE_API_KEY;
+
+        url = `${baseUrl}${path}`;
         requestOptions = {
           ...options,
           headers: {
-            'Authorization': `Bearer ${API_CONFIG.MESHY_API_KEY}`,
+            Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
-            ...options.headers
-          }
+            ...options.headers,
+          },
         };
       }
 
       const response = await fetch(url, requestOptions);
-      
+
       if (API_CONFIG.USE_PROXY) {
         // Handle proxy response format
         const proxyResponse = await response.json();
@@ -63,7 +82,7 @@ export class ApiClient {
         return {
           success: response.ok,
           status: response.status,
-          data: data
+          data: data,
         };
       }
     } catch (error) {
@@ -73,31 +92,73 @@ export class ApiClient {
         status: 0,
         data: null as T,
         error: 'Network error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
+  // Meshy API methods
   static async get<T = any>(path: string): Promise<ApiResponse<T>> {
-    return this.makeRequest<T>(path, { method: 'GET' });
+    return this.makeRequest<T>(path, { method: 'GET' }, 'meshy');
   }
 
   static async post<T = any>(path: string, body: any): Promise<ApiResponse<T>> {
-    return this.makeRequest<T>(path, {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
+    return this.makeRequest<T>(
+      path,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      'meshy',
+    );
   }
 
   static async put<T = any>(path: string, body: any): Promise<ApiResponse<T>> {
-    return this.makeRequest<T>(path, {
-      method: 'PUT',
-      body: JSON.stringify(body)
-    });
+    return this.makeRequest<T>(
+      path,
+      {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      },
+      'meshy',
+    );
   }
 
   static async delete<T = any>(path: string): Promise<ApiResponse<T>> {
-    return this.makeRequest<T>(path, { method: 'DELETE' });
+    return this.makeRequest<T>(path, { method: 'DELETE' }, 'meshy');
+  }
+
+  // Airtable API methods
+  static async airtableGet<T = any>(path: string): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(path, { method: 'GET' }, 'airtable');
+  }
+
+  static async airtablePost<T = any>(
+    path: string,
+    body: any,
+  ): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(
+      path,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      'airtable',
+    );
+  }
+
+  static async airtablePatch<T = any>(
+    path: string,
+    body: any,
+  ): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(
+      path,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      },
+      'airtable',
+    );
   }
 
   // Health check for proxy

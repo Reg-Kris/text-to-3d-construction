@@ -9,23 +9,25 @@ import { ProjectService } from './project-service';
 import { DownloadRecord } from '../types';
 
 export class DownloadService {
-  static async recordDownload(download: Omit<DownloadRecord, 'id' | 'downloaded_at'>): Promise<void> {
+  static async recordDownload(
+    download: Omit<DownloadRecord, 'id' | 'downloaded_at'>,
+  ): Promise<void> {
     const base = AirtableBase.getBase();
-    
+
     const downloadData = {
       ...download,
-      downloaded_at: new Date().toISOString()
+      downloaded_at: new Date().toISOString(),
     };
 
     try {
       await base('Downloads').create(downloadData);
-      
+
       // Increment download count in Projects table
       if (download.project_id) {
         const project = await ProjectService.getProject(download.project_id);
         if (project) {
           await ProjectService.updateProject(download.project_id, {
-            download_count: (project.download_count || 0) + 1
+            download_count: (project.download_count || 0) + 1,
           });
         }
       }
@@ -35,21 +37,24 @@ export class DownloadService {
     }
   }
 
-  static async getDownloadHistory(userEmail: string, limit: number = 50): Promise<DownloadRecord[]> {
+  static async getDownloadHistory(
+    userEmail: string,
+    limit: number = 50,
+  ): Promise<DownloadRecord[]> {
     const base = AirtableBase.getBase();
-    
+
     try {
       const records = await base('Downloads')
         .select({
           filterByFormula: `{user_email} = '${userEmail}'`,
           maxRecords: limit,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }]
+          sort: [{ field: 'downloaded_at', direction: 'desc' }],
         })
         .all();
 
-      return records.map(record => ({
+      return records.map((record) => ({
         id: record.id,
-        ...record.fields
+        ...record.fields,
       })) as DownloadRecord[];
     } catch (error) {
       console.error('Failed to fetch download history:', error);
@@ -63,36 +68,37 @@ export class DownloadService {
     recentDownloads: DownloadRecord[];
   }> {
     const base = AirtableBase.getBase();
-    
+
     try {
       const records = await base('Downloads')
         .select({
           filterByFormula: `{user_email} = '${userEmail}'`,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }]
+          sort: [{ field: 'downloaded_at', direction: 'desc' }],
         })
         .all();
 
-      const downloads = records.map(record => ({
+      const downloads = records.map((record) => ({
         id: record.id,
-        ...record.fields
+        ...record.fields,
       })) as DownloadRecord[];
 
       const formatBreakdown: Record<string, number> = {};
-      downloads.forEach(download => {
-        formatBreakdown[download.format] = (formatBreakdown[download.format] || 0) + 1;
+      downloads.forEach((download) => {
+        formatBreakdown[download.format] =
+          (formatBreakdown[download.format] || 0) + 1;
       });
 
       return {
         totalDownloads: downloads.length,
         formatBreakdown,
-        recentDownloads: downloads.slice(0, 10)
+        recentDownloads: downloads.slice(0, 10),
       };
     } catch (error) {
       console.error('Failed to fetch download stats:', error);
       return {
         totalDownloads: 0,
         formatBreakdown: {},
-        recentDownloads: []
+        recentDownloads: [],
       };
     }
   }
@@ -103,46 +109,48 @@ export class DownloadService {
     deviceBreakdown: Record<string, number>;
   }> {
     const base = AirtableBase.getBase();
-    
+
     try {
       const records = await base('Downloads')
         .select({
           maxRecords: 10000, // Limit for performance
-          sort: [{ field: 'downloaded_at', direction: 'desc' }]
+          sort: [{ field: 'downloaded_at', direction: 'desc' }],
         })
         .all();
 
-      const downloads = records.map(record => ({
+      const downloads = records.map((record) => ({
         id: record.id,
-        ...record.fields
+        ...record.fields,
       })) as DownloadRecord[];
 
       const popularFormats: Record<string, number> = {};
       const deviceBreakdown: Record<string, number> = {};
 
-      downloads.forEach(download => {
-        popularFormats[download.format] = (popularFormats[download.format] || 0) + 1;
-        deviceBreakdown[download.device_type] = (deviceBreakdown[download.device_type] || 0) + 1;
+      downloads.forEach((download) => {
+        popularFormats[download.format] =
+          (popularFormats[download.format] || 0) + 1;
+        deviceBreakdown[download.device_type] =
+          (deviceBreakdown[download.device_type] || 0) + 1;
       });
 
       return {
         totalDownloads: downloads.length,
         popularFormats,
-        deviceBreakdown
+        deviceBreakdown,
       };
     } catch (error) {
       console.error('Failed to fetch global download stats:', error);
       return {
         totalDownloads: 0,
         popularFormats: {},
-        deviceBreakdown: {}
+        deviceBreakdown: {},
       };
     }
   }
 
   static async deleteDownloadRecord(id: string): Promise<void> {
     const base = AirtableBase.getBase();
-    
+
     try {
       await base('Downloads').destroy(id);
     } catch (error) {
@@ -151,20 +159,22 @@ export class DownloadService {
     }
   }
 
-  static async getDownloadsByProject(projectId: string): Promise<DownloadRecord[]> {
+  static async getDownloadsByProject(
+    projectId: string,
+  ): Promise<DownloadRecord[]> {
     const base = AirtableBase.getBase();
-    
+
     try {
       const records = await base('Downloads')
         .select({
           filterByFormula: `{project_id} = '${projectId}'`,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }]
+          sort: [{ field: 'downloaded_at', direction: 'desc' }],
         })
         .all();
 
-      return records.map(record => ({
+      return records.map((record) => ({
         id: record.id,
-        ...record.fields
+        ...record.fields,
       })) as DownloadRecord[];
     } catch (error) {
       console.error('Failed to fetch downloads by project:', error);

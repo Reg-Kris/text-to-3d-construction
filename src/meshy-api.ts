@@ -39,26 +39,27 @@ export interface DeviceCapabilities {
 }
 
 export class MeshyAPI {
-
   // Detect device capabilities
   static getDeviceCapabilities(): DeviceCapabilities {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const isTablet = /iPad|Android.*tablet/i.test(navigator.userAgent);
-    
+
     return {
       isMobile: isMobile && !isTablet,
       maxPolyCount: isMobile ? 8000 : isTablet ? 12000 : 30000,
       maxFileSizeMB: isMobile ? 10 : isTablet ? 15 : 25,
-      supportedFormats: isMobile ? ['glb'] : ['glb', 'fbx', 'obj', 'usdz']
+      supportedFormats: isMobile ? ['glb'] : ['glb', 'fbx', 'obj', 'usdz'],
     };
   }
 
   // Stage 1: Create preview task
-  static async createPreviewTask(request: GenerationRequest): Promise<MeshyTask> {
+  static async createPreviewTask(
+    request: GenerationRequest,
+  ): Promise<MeshyTask> {
     const capabilities = this.getDeviceCapabilities();
     const optimizedPolyCount = Math.min(
       request.targetPolyCount || capabilities.maxPolyCount,
-      capabilities.maxPolyCount
+      capabilities.maxPolyCount,
     );
 
     const payload = {
@@ -69,13 +70,15 @@ export class MeshyAPI {
       target_polycount: optimizedPolyCount,
       topology: request.topology || 'triangle',
       enable_remesh: request.enableRemesh !== false,
-      ...(request.seed && { seed: request.seed })
+      ...(request.seed && { seed: request.seed }),
     };
 
     const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
     if (!response.success) {
-      throw new Error(`Preview task failed: ${response.error || response.message || 'Unknown error'}`);
+      throw new Error(
+        `Preview task failed: ${response.error || response.message || 'Unknown error'}`,
+      );
     }
 
     return response.data;
@@ -85,13 +88,15 @@ export class MeshyAPI {
   static async createRefineTask(previewTaskId: string): Promise<MeshyTask> {
     const payload = {
       mode: 'refine',
-      preview_task_id: previewTaskId
+      preview_task_id: previewTaskId,
     };
 
     const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
     if (!response.success) {
-      throw new Error(`Refine task failed: ${response.error || response.message || 'Unknown error'}`);
+      throw new Error(
+        `Refine task failed: ${response.error || response.message || 'Unknown error'}`,
+      );
     }
 
     return response.data;
@@ -102,7 +107,9 @@ export class MeshyAPI {
     const response = await ApiClient.get<MeshyTask>(`/text-to-3d/${taskId}`);
 
     if (!response.success) {
-      throw new Error(`Task status failed: ${response.error || response.message || 'Unknown error'}`);
+      throw new Error(
+        `Task status failed: ${response.error || response.message || 'Unknown error'}`,
+      );
     }
 
     return response.data;
@@ -110,71 +117,90 @@ export class MeshyAPI {
 
   // Poll for task completion
   static async pollForCompletion(
-    taskId: string, 
-    maxAttempts: number = 60, 
-    onProgress?: (progress: number) => void
+    taskId: string,
+    maxAttempts: number = 60,
+    onProgress?: (progress: number) => void,
   ): Promise<MeshyTask> {
     let attempts = 0;
-    
+
     while (attempts < maxAttempts) {
       const task = await this.getTaskStatus(taskId);
-      
+
       if (task.status === 'SUCCEEDED') {
         return task;
       }
-      
+
       if (task.status === 'FAILED') {
         throw new Error('3D model generation failed');
       }
-      
+
       // Report progress
       const progress = Math.min(attempts / maxAttempts, 0.9); // Cap at 90% until complete
       onProgress?.(progress);
-      
+
       // Wait 5 seconds before next poll
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       attempts++;
     }
-    
+
     throw new Error('3D model generation timed out');
   }
 
   // Complete text-to-3D generation workflow with progress callbacks
   static async generateModel(
-    request: GenerationRequest, 
-    onProgress?: (stage: string, progress: number) => void
+    request: GenerationRequest,
+    onProgress?: (stage: string, progress: number) => void,
   ): Promise<MeshyTask> {
     try {
       onProgress?.('Creating preview model...', 10);
-      
+
       // Stage 1: Create preview
       const previewTask = await this.createPreviewTask(request);
-      
+
       onProgress?.('Generating geometry...', 20);
-      
+
       // Poll for preview completion
-      const completedPreview = await this.pollForCompletion(previewTask.id, 60, (progress) => {
-        onProgress?.('Processing geometry...', 20 + (progress * 0.4)); // 20-60%
-      });
-      
+      const completedPreview = await this.pollForCompletion(
+        previewTask.id,
+        60,
+        (progress) => {
+          onProgress?.('Processing geometry...', 20 + progress * 0.4); // 20-60%
+        },
+      );
+
       onProgress?.('Creating textured model...', 60);
-      
+
       // Stage 2: Create refine task
       const refineTask = await this.createRefineTask(completedPreview.id);
-      
+
       onProgress?.('Applying textures...', 70);
-      
+
       // Poll for refine completion
-      const completedRefine = await this.pollForCompletion(refineTask.id, 60, (progress) => {
-        onProgress?.('Finalizing model...', 70 + (progress * 0.3)); // 70-100%
-      });
-      
+      const completedRefine = await this.pollForCompletion(
+        refineTask.id,
+        60,
+        (progress) => {
+          onProgress?.('Finalizing model...', 70 + progress * 0.3); // 70-100%
+        },
+      );
+
       onProgress?.('Model ready!', 100);
-      
+
       return completedRefine;
     } catch (error) {
       console.error('Meshy API error:', error);
       throw error;
+    }
+  }
+
+  // Cancel task
+  static async cancelTask(taskId: string): Promise<void> {
+    const response = await ApiClient.delete(`/text-to-3d/${taskId}`);
+
+    if (!response.success) {
+      throw new Error(
+        `Cancel task failed: ${response.error || response.message || 'Unknown error'}`,
+      );
     }
   }
 
@@ -184,17 +210,17 @@ export class MeshyAPI {
     if (!response.ok) {
       throw new Error(`Download failed: ${response.statusText}`);
     }
-    
+
     const blob = await response.blob();
     const downloadUrl = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = downloadUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
+
     URL.revokeObjectURL(downloadUrl);
   }
 }

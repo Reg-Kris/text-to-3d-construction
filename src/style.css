@@ -140,7 +140,7 @@ button:disabled {
 model-viewer {
   border: 1px solid #ddd;
   border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Download Section */
@@ -240,7 +240,7 @@ model-viewer {
   border-radius: 3px;
 }
 
-.settings-row input[type="checkbox"] {
+.settings-row input[type='checkbox'] {
   margin-right: 8px;
 }
 
@@ -333,10 +333,22 @@ model-viewer {
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  20% { opacity: 1; transform: translateY(0); }
-  80% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 /* Enhanced Progress Bar */
@@ -400,7 +412,7 @@ model-viewer {
   position: relative;
   border: 1px solid #ddd;
   border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background: #f5f5f5;
 }
 
@@ -455,32 +467,32 @@ model-viewer {
   .container {
     padding: 10px;
   }
-  
+
   .user-info {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .settings-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .settings-row label {
     min-width: auto;
   }
-  
+
   .settings-row select {
     width: 100%;
   }
-  
+
   .download-info {
     flex-direction: column;
     gap: 5px;
     align-items: flex-start;
   }
-  
+
   .device-info small {
     font-size: 11px;
   }
@@ -490,11 +502,11 @@ model-viewer {
   .quality-settings {
     padding: 10px;
   }
-  
+
   .download-options {
     padding: 15px;
   }
-  
+
   .download-option {
     padding: 8px;
   }

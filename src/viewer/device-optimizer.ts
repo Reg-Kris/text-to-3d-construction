@@ -33,7 +33,7 @@ export class DeviceOptimizer {
         pixelRatio: Math.min(window.devicePixelRatio, 1.5),
         enableEnvironmentMapping: false,
         enablePostProcessing: false,
-        textureQuality: 0.5
+        textureQuality: 0.5,
       };
     } else if (this.deviceInfo.isTablet) {
       return {
@@ -42,7 +42,7 @@ export class DeviceOptimizer {
         pixelRatio: Math.min(window.devicePixelRatio, 1.8),
         enableEnvironmentMapping: false,
         enablePostProcessing: false,
-        textureQuality: 0.7
+        textureQuality: 0.7,
       };
     } else {
       return {
@@ -51,14 +51,14 @@ export class DeviceOptimizer {
         pixelRatio: Math.min(window.devicePixelRatio, 2),
         enableEnvironmentMapping: true,
         enablePostProcessing: true,
-        textureQuality: 1.0
+        textureQuality: 1.0,
       };
     }
   }
 
   optimizeRenderer(renderer: THREE.WebGLRenderer): void {
     renderer.setPixelRatio(this.settings.pixelRatio);
-    
+
     if (this.settings.enableShadows) {
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -69,8 +69,7 @@ export class DeviceOptimizer {
       renderer.toneMappingExposure = 1.0;
     }
 
-    // Performance optimizations
-    renderer.powerPreference = this.deviceInfo.isMobile ? 'low-power' : 'high-performance';
+    // Performance optimizations complete
   }
 
   optimizeCamera(camera: THREE.PerspectiveCamera): void {
@@ -80,7 +79,7 @@ export class DeviceOptimizer {
     } else {
       camera.fov = 75; // Standard FOV for desktop
     }
-    
+
     camera.updateProjectionMatrix();
   }
 
@@ -102,21 +101,27 @@ export class DeviceOptimizer {
 
   optimizeLighting(scene: THREE.Scene): void {
     // Ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, this.deviceInfo.isMobile ? 0.8 : 0.6);
+    const ambientLight = new THREE.AmbientLight(
+      0xffffff,
+      this.deviceInfo.isMobile ? 0.8 : 0.6,
+    );
     scene.add(ambientLight);
 
     // Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, this.deviceInfo.isMobile ? 0.8 : 1.0);
+    const directionalLight = new THREE.DirectionalLight(
+      0xffffff,
+      this.deviceInfo.isMobile ? 0.8 : 1.0,
+    );
     directionalLight.position.set(10, 10, 10);
     directionalLight.castShadow = this.settings.enableShadows;
-    
+
     if (directionalLight.castShadow) {
       directionalLight.shadow.mapSize.width = 2048;
       directionalLight.shadow.mapSize.height = 2048;
       directionalLight.shadow.camera.near = 0.5;
       directionalLight.shadow.camera.far = 500;
     }
-    
+
     scene.add(directionalLight);
 
     // Fill light for better visibility (desktop only)
@@ -131,14 +136,14 @@ export class DeviceOptimizer {
     object.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const mesh = child as THREE.Mesh;
-        
+
         // Enable frustum culling
         mesh.frustumCulled = true;
-        
+
         // Optimize materials
         if (mesh.material) {
           if (Array.isArray(mesh.material)) {
-            mesh.material.forEach(mat => this.optimizeMaterial(mat));
+            mesh.material.forEach((mat) => this.optimizeMaterial(mat));
           } else {
             this.optimizeMaterial(mesh.material);
           }
@@ -187,7 +192,10 @@ export class DeviceOptimizer {
     texture.wrapT = THREE.ClampToEdgeWrapping;
   }
 
-  setupEnvironmentMapping(scene: THREE.Scene, renderer: THREE.WebGLRenderer): void {
+  setupEnvironmentMapping(
+    scene: THREE.Scene,
+    renderer: THREE.WebGLRenderer,
+  ): void {
     if (this.settings.enableEnvironmentMapping) {
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
       const envTexture = pmremGenerator.fromScene(new THREE.Scene()).texture;
@@ -215,13 +223,19 @@ export class DeviceOptimizer {
 
   getOptimizationSummary(): string[] {
     const summary: string[] = [];
-    
+
     summary.push(`Device: ${this.deviceInfo.type}`);
-    summary.push(`Shadows: ${this.settings.enableShadows ? 'Enabled' : 'Disabled'}`);
-    summary.push(`Antialiasing: ${this.settings.enableAntialiasing ? 'Enabled' : 'Disabled'}`);
+    summary.push(
+      `Shadows: ${this.settings.enableShadows ? 'Enabled' : 'Disabled'}`,
+    );
+    summary.push(
+      `Antialiasing: ${this.settings.enableAntialiasing ? 'Enabled' : 'Disabled'}`,
+    );
     summary.push(`Pixel Ratio: ${this.settings.pixelRatio}`);
-    summary.push(`Texture Quality: ${Math.round(this.settings.textureQuality * 100)}%`);
-    
+    summary.push(
+      `Texture Quality: ${Math.round(this.settings.textureQuality * 100)}%`,
+    );
+
     return summary;
   }
 }

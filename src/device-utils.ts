@@ -35,10 +35,11 @@ export class DeviceUtils {
     const supportsWebGL2 = !!gl2;
 
     // Get approximate memory info (if available)
-    const memoryInfo = (navigator as any).deviceMemory || 
-                      (performance as any).memory?.usedJSHeapSize ? 
-                      Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) : 
-                      null;
+    const memoryInfo =
+      (navigator as any).deviceMemory ||
+      (performance as any).memory?.usedJSHeapSize
+        ? Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024)
+        : null;
 
     let deviceType: 'mobile' | 'tablet' | 'desktop';
     let maxPolyCount: number;
@@ -86,7 +87,7 @@ export class DeviceUtils {
       maxFileSizeMB,
       recommendedFormats,
       memoryLimitMB,
-      supportsWebGL2
+      supportsWebGL2,
     };
 
     return this.deviceInfo;
@@ -130,7 +131,7 @@ export class DeviceUtils {
       targetPolyCount: Math.round(polyCount),
       topology,
       enablePBR,
-      enableRemesh: !device.isMobile
+      enableRemesh: !device.isMobile,
     };
   }
 
@@ -139,7 +140,9 @@ export class DeviceUtils {
     const warnings: string[] = [];
 
     if (device.isMobile) {
-      warnings.push('Mobile device detected. Models will be optimized for performance.');
+      warnings.push(
+        'Mobile device detected. Models will be optimized for performance.',
+      );
     }
 
     if (!device.supportsWebGL2) {
@@ -147,7 +150,9 @@ export class DeviceUtils {
     }
 
     if (device.maxFileSizeMB < 15) {
-      warnings.push(`File size limited to ${device.maxFileSizeMB}MB for optimal performance.`);
+      warnings.push(
+        `File size limited to ${device.maxFileSizeMB}MB for optimal performance.`,
+      );
     }
 
     return warnings;
@@ -155,7 +160,7 @@ export class DeviceUtils {
 
   static estimateLoadTime(fileSizeMB: number): string {
     const device = this.getDeviceInfo();
-    
+
     // Rough estimates based on typical connection speeds
     let speedMbps: number;
     if (device.isMobile) {
@@ -167,7 +172,7 @@ export class DeviceUtils {
     }
 
     const loadTimeSeconds = (fileSizeMB * 8) / speedMbps;
-    
+
     if (loadTimeSeconds < 3) {
       return 'Under 3 seconds';
     } else if (loadTimeSeconds < 10) {
@@ -186,7 +191,7 @@ export class DeviceUtils {
 
   static getRecommendedFormat(): string {
     const device = this.getDeviceInfo();
-    
+
     if (device.isMobile) {
       return 'glb'; // Smallest file size, best mobile support
     } else if (device.isTablet) {

@@ -23,7 +23,7 @@ export class PerformanceMonitor {
     triangles: 0,
     lastFrameTime: 0,
     memoryUsage: 0,
-    gpuMemoryUsage: 0
+    gpuMemoryUsage: 0,
   };
 
   private frameCount = 0;
@@ -44,7 +44,7 @@ export class PerformanceMonitor {
     this.stats.frameRate = 1000 / deltaTime;
     this.stats.renderTime = renderTime;
     this.stats.lastFrameTime = timestamp;
-    
+
     this.frameCount++;
 
     // Check performance every 60 frames (roughly 1 second at 60fps)
@@ -55,10 +55,10 @@ export class PerformanceMonitor {
 
   private checkPerformance(): void {
     const now = performance.now();
-    
+
     // Skip if we checked recently
     if (now - this.lastPerfCheck < 1000) return;
-    
+
     this.lastPerfCheck = now;
 
     // Update memory usage if available
@@ -76,13 +76,19 @@ export class PerformanceMonitor {
       // Enable more aggressive LOD if performance is poor
       if (this.lodSystem && !this.lodSystem.isEnabled()) {
         this.lodSystem.toggleLOD(true);
-        console.log('Performance LOD enabled due to low frame rate:', this.stats.frameRate);
+        console.log(
+          'Performance LOD enabled due to low frame rate:',
+          this.stats.frameRate,
+        );
       }
     } else if (this.stats.frameRate > 55 && this.deviceInfo.isDesktop) {
       // Disable LOD if performance is very good on desktop
       if (this.lodSystem && this.lodSystem.isEnabled()) {
         this.lodSystem.toggleLOD(false);
-        console.log('Performance LOD disabled due to high frame rate:', this.stats.frameRate);
+        console.log(
+          'Performance LOD disabled due to high frame rate:',
+          this.stats.frameRate,
+        );
       }
     }
 
@@ -91,11 +97,13 @@ export class PerformanceMonitor {
       console.warn('Low frame rate detected:', this.stats.frameRate);
     }
 
-    if (this.stats.renderTime > 16) { // 16ms = 60fps
+    if (this.stats.renderTime > 16) {
+      // 16ms = 60fps
       console.warn('High render time detected:', this.stats.renderTime);
     }
 
-    if (this.stats.memoryUsage > 100) { // 100MB threshold
+    if (this.stats.memoryUsage > 100) {
+      // 100MB threshold
       console.warn('High memory usage detected:', this.stats.memoryUsage);
     }
   }
@@ -109,10 +117,12 @@ export class PerformanceMonitor {
   }
 
   getFormattedStats(): string {
-    return `FPS: ${this.stats.frameRate.toFixed(1)} | ` +
-           `Render: ${this.stats.renderTime.toFixed(1)}ms | ` +
-           `Triangles: ${this.stats.triangles.toLocaleString()} | ` +
-           `Memory: ${this.stats.memoryUsage.toFixed(1)}MB`;
+    return (
+      `FPS: ${this.stats.frameRate.toFixed(1)} | ` +
+      `Render: ${this.stats.renderTime.toFixed(1)}ms | ` +
+      `Triangles: ${this.stats.triangles.toLocaleString()} | ` +
+      `Memory: ${this.stats.memoryUsage.toFixed(1)}MB`
+    );
   }
 
   isPerformanceGood(): boolean {
@@ -143,7 +153,9 @@ export class PerformanceMonitor {
     }
 
     if (this.stats.memoryUsage > 50) {
-      suggestions.push('High memory usage detected - consider reloading the page');
+      suggestions.push(
+        'High memory usage detected - consider reloading the page',
+      );
     }
 
     if (this.stats.renderTime > 20) {
@@ -160,7 +172,7 @@ export class PerformanceMonitor {
       triangles: 0,
       lastFrameTime: 0,
       memoryUsage: 0,
-      gpuMemoryUsage: 0
+      gpuMemoryUsage: 0,
     };
     this.frameCount = 0;
     this.lastPerfCheck = 0;

@@ -3,6 +3,7 @@
 ## Current Architecture Assessment
 
 ### Strengths of Current Vanilla TypeScript Setup
+
 - **Lightweight**: No framework overhead, smaller bundle size
 - **Direct Control**: Full control over DOM manipulation and state management
 - **Three.js Integration**: Direct integration without framework-specific wrappers
@@ -10,6 +11,7 @@
 - **Deployment Simplicity**: Static files, easy to deploy anywhere
 
 ### Pain Points
+
 - **Manual DOM Management**: Repetitive and error-prone DOM manipulation
 - **State Management**: Manual state tracking across components
 - **Code Organization**: HTML templates mixed with logic
@@ -21,6 +23,7 @@
 ### 1. React + Next.js
 
 **Pros:**
+
 - **Component Architecture**: Better code organization and reusability
 - **Rich Ecosystem**: Large community, extensive libraries
 - **TypeScript Support**: Excellent TypeScript integration
@@ -30,6 +33,7 @@
 - **Testing**: Jest, React Testing Library ecosystem
 
 **Cons:**
+
 - **Bundle Size**: Larger initial bundle (~40KB+ for React)
 - **Learning Curve**: Team needs React knowledge
 - **Build Complexity**: More complex build configuration
@@ -40,6 +44,7 @@
 ### 2. Vue 3 + Nuxt
 
 **Pros:**
+
 - **Gentle Learning Curve**: Easier transition from vanilla JS
 - **Composition API**: Modern reactive state management
 - **Performance**: Similar to React but potentially smaller bundle
@@ -47,6 +52,7 @@
 - **Template Syntax**: More familiar to HTML developers
 
 **Cons:**
+
 - **Smaller Ecosystem**: Less community support than React
 - **Three.js Integration**: Limited Vue-specific Three.js libraries
 - **Team Knowledge**: Less common than React
@@ -56,6 +62,7 @@
 ### 3. Svelte/SvelteKit
 
 **Pros:**
+
 - **Compile Time**: No runtime overhead, smallest bundle size
 - **Simple Syntax**: Very close to vanilla HTML/JS
 - **Performance**: Excellent runtime performance
@@ -63,6 +70,7 @@
 - **Learning Curve**: Minimal learning required
 
 **Cons:**
+
 - **Ecosystem**: Smaller ecosystem and community
 - **Three.js Integration**: Limited Svelte-specific libraries
 - **Tooling**: Less mature development tools
@@ -73,6 +81,7 @@
 ### 4. Lit (Web Components)
 
 **Pros:**
+
 - **Standards-Based**: Built on web standards
 - **Minimal Runtime**: Very small framework footprint
 - **TypeScript**: Excellent TypeScript support
@@ -80,6 +89,7 @@
 - **Three.js Integration**: Easy integration with vanilla Three.js
 
 **Cons:**
+
 - **Learning Curve**: Web Components concepts
 - **Browser Support**: Requires polyfills for older browsers
 - **Ecosystem**: Limited compared to React/Vue
@@ -91,6 +101,7 @@
 ### For This Project: Stay with Vanilla TypeScript + Optimizations
 
 **Reasoning:**
+
 1. **Project Scope**: Current project is focused and well-defined
 2. **Performance Critical**: 3D applications benefit from minimal framework overhead
 3. **Bundle Size**: Critical for 3D applications with large Three.js dependencies
@@ -106,6 +117,7 @@ If framework migration is desired:
 3. **Phase 3**: Add proper component lifecycle management (1 week)
 
 **Benefits of Lit Migration:**
+
 - Maintains performance characteristics
 - Gradual migration path
 - Standards-based approach
@@ -115,21 +127,25 @@ If framework migration is desired:
 ## Implementation Strategy (If Proceeding with Migration)
 
 ### Phase 1: Component Extraction (Week 1)
+
 - Extract UI components (buttons, forms, modals)
 - Create component interfaces
 - Implement basic state management
 
 ### Phase 2: State Management (Week 2)
+
 - Implement centralized state management
 - Add proper event handling
 - Create component communication system
 
 ### Phase 3: Integration & Testing (Week 3)
+
 - Integrate with Three.js viewer
 - Add comprehensive testing
 - Performance optimization
 
 ### Phase 4: Advanced Features (Week 4)
+
 - Add advanced component features
 - Implement proper error boundaries
 - Add accessibility features
@@ -137,17 +153,20 @@ If framework migration is desired:
 ## Bundle Size Analysis
 
 ### Current (Vanilla + Optimizations): ~150KB
+
 - Three.js: ~100KB (gzipped)
 - Application code: ~30KB (gzipped)
 - Dependencies: ~20KB (gzipped)
 
 ### React + Next.js: ~200KB
+
 - React runtime: ~40KB (gzipped)
 - Three.js: ~100KB (gzipped)
 - Application code: ~40KB (gzipped)
 - Dependencies: ~20KB (gzipped)
 
 ### Lit: ~160KB
+
 - Lit runtime: ~10KB (gzipped)
 - Three.js: ~100KB (gzipped)
 - Application code: ~30KB (gzipped)

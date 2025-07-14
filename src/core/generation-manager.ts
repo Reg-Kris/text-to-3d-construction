@@ -7,7 +7,13 @@
 import { MeshyAPI } from '../meshy-api';
 import { AirtableService } from '../airtable-service';
 import { DeviceUtils } from '../device-utils';
-import { AppState, QualitySettings, GenerationRequest, MeshyTask, ProjectRecord } from '../types';
+import {
+  AppState,
+  QualitySettings,
+  GenerationRequest,
+  MeshyTask,
+  ProjectRecord,
+} from '../types';
 
 export class GenerationManager {
   constructor(private state: AppState) {}
@@ -15,9 +21,8 @@ export class GenerationManager {
   async generateModel(
     prompt: string,
     qualitySettings: QualitySettings,
-    progressCallback: (stage: string, progress: number) => void
+    progressCallback: (stage: string, progress: number) => void,
   ): Promise<{ task: MeshyTask; project: ProjectRecord }> {
-    
     const deviceSettings = DeviceUtils.getOptimizedSettings(qualitySettings);
     const deviceInfo = DeviceUtils.getDeviceInfo();
 
@@ -28,7 +33,7 @@ export class GenerationManager {
       status: 'generating',
       device_type: deviceInfo.type,
       art_style: 'realistic',
-      polygon_count: deviceSettings.targetPolyCount
+      polygon_count: deviceSettings.targetPolyCount,
     });
 
     const request: GenerationRequest = {
@@ -37,40 +42,41 @@ export class GenerationManager {
       enablePBR: deviceSettings.enablePBR,
       targetPolyCount: deviceSettings.targetPolyCount,
       topology: deviceSettings.topology,
-      enableRemesh: deviceSettings.enableRemesh
+      enableRemesh: deviceSettings.enableRemesh,
     };
 
     try {
       // Generate the model using Meshy API with progress tracking
       const task = await MeshyAPI.generateModel(request, progressCallback);
-      
+
       // Update project with completion data
-      const generationTime = Math.round((Date.now() - this.state.generationStartTime) / 1000);
+      const generationTime = Math.round(
+        (Date.now() - this.state.generationStartTime) / 1000,
+      );
       const updatedProject = await AirtableService.updateProject(project.id!, {
         status: 'completed',
         model_urls: task.model_urls,
         generation_time_seconds: generationTime,
-        thumbnail_url: task.thumbnail_url
+        thumbnail_url: task.thumbnail_url,
       });
 
       return {
         task,
-        project: updatedProject || project
+        project: updatedProject || project,
       };
-      
     } catch (error) {
       // Update project with failure status
       await AirtableService.updateProject(project.id!, {
-        status: 'failed'
+        status: 'failed',
       }).catch(console.error);
-      
+
       throw error;
     }
   }
 
   async retryGeneration(
     projectId: string,
-    progressCallback: (stage: string, progress: number) => void
+    progressCallback: (stage: string, progress: number) => void,
   ): Promise<MeshyTask> {
     const project = await AirtableService.getProject(projectId);
     if (!project) {
@@ -79,15 +85,19 @@ export class GenerationManager {
 
     // Reset project status
     await AirtableService.updateProject(projectId, {
-      status: 'generating'
+      status: 'generating',
     });
 
     const qualitySettings: QualitySettings = {
       quality: 'medium',
-      prioritizeSpeed: false
+      prioritizeSpeed: false,
     };
 
-    const result = await this.generateModel(project.prompt, qualitySettings, progressCallback);
+    const result = await this.generateModel(
+      project.prompt,
+      qualitySettings,
+      progressCallback,
+    );
     return result.task;
   }
 
@@ -95,13 +105,13 @@ export class GenerationManager {
     if (this.state.currentTask) {
       try {
         await MeshyAPI.cancelTask(this.state.currentTask.id);
-        
+
         if (this.state.currentProject) {
           await AirtableService.updateProject(this.state.currentProject.id!, {
-            status: 'failed'
+            status: 'failed',
           });
         }
-        
+
         this.state.currentTask = null;
         this.state.isGenerating = false;
       } catch (error) {
@@ -120,7 +130,7 @@ export class GenerationManager {
     // For now, return a placeholder
     return {
       stage: 'Generating model...',
-      progress: 50
+      progress: 50,
     };
   }
 }

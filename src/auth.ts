@@ -17,15 +17,19 @@ export class AuthService {
 
   static async authenticate(): Promise<User | null> {
     // Simple email prompt for now (can be enhanced with OAuth later)
-    const email = prompt('Enter your email address to access the 3D Construction Platform:');
-    
+    const email = prompt(
+      'Enter your email address to access the 3D Construction Platform:',
+    );
+
     if (!email) {
       return null;
     }
 
     // Check if email is in whitelist
     if (!API_CONFIG.AUTHORIZED_EMAILS.includes(email.toLowerCase())) {
-      alert('Access denied. Your email is not authorized to use this application.');
+      alert(
+        'Access denied. Your email is not authorized to use this application.',
+      );
       return null;
     }
 
@@ -33,14 +37,14 @@ export class AuthService {
     const user: User = {
       email: email.toLowerCase(),
       name: email.split('@')[0], // Extract name from email
-      authenticated: true
+      authenticated: true,
     };
 
     this.currentUser = user;
-    
+
     // Store in localStorage for session persistence
     localStorage.setItem('construction_3d_user', JSON.stringify(user));
-    
+
     return user;
   }
 
@@ -54,7 +58,10 @@ export class AuthService {
     if (stored) {
       try {
         const user = JSON.parse(stored);
-        if (user.authenticated && API_CONFIG.AUTHORIZED_EMAILS.includes(user.email)) {
+        if (
+          user.authenticated &&
+          API_CONFIG.AUTHORIZED_EMAILS.includes(user.email)
+        ) {
           this.currentUser = user;
           return user;
         }

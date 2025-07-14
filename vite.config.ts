@@ -6,6 +6,22 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      // Proxy Meshy API calls during development
+      '/.netlify/functions/meshy-proxy': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(/^\/\.netlify\/functions/, '/.netlify/functions'),
+      },
+      // Proxy Airtable API calls during development
+      '/.netlify/functions/airtable-proxy': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(/^\/\.netlify\/functions/, '/.netlify/functions'),
+      },
+    },
   },
   build: {
     // Fix build output path
@@ -23,13 +39,11 @@ export default defineConfig({
           'three-loaders': [
             'three/examples/jsm/loaders/GLTFLoader.js',
             'three/examples/jsm/loaders/FBXLoader.js',
-            'three/examples/jsm/loaders/OBJLoader.js'
+            'three/examples/jsm/loaders/OBJLoader.js',
           ],
-          'three-controls': [
-            'three/examples/jsm/controls/OrbitControls.js'
-          ]
-        }
-      }
+          'three-controls': ['three/examples/jsm/controls/OrbitControls.js'],
+        },
+      },
     },
     // Optimize chunk size
     chunkSizeWarningLimit: 1000,
@@ -39,13 +53,13 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log']
-      }
-    }
+        pure_funcs: ['console.log'],
+      },
+    },
   },
   // Enable tree shaking and optimization
   optimizeDeps: {
-    include: ['three', 'airtable']
+    include: ['three', 'airtable'],
   },
   // Resolve configuration for better imports
   resolve: {
@@ -55,11 +69,13 @@ export default defineConfig({
       '@services': resolve(__dirname, 'src/services'),
       '@viewer': resolve(__dirname, 'src/viewer'),
       '@utils': resolve(__dirname, 'src/utils'),
-      '@types': resolve(__dirname, 'src/types')
-    }
+      '@types': resolve(__dirname, 'src/types'),
+    },
   },
   // Define environment variables
   define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
-  }
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || 'development',
+    ),
+  },
 });

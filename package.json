@@ -13,14 +13,15 @@
   "devDependencies": {
     "@types/node": "^20.14.10",
     "prettier": "^3.0.0",
+    "terser": "^5.43.1",
     "typescript": "^5.5.3",
     "vite": "^5.3.3"
   },
   "dependencies": {
     "@google/model-viewer": "^3.5.0",
-    "@types/three": "^0.178.1",
+    "@types/three": "^0.163.0",
     "airtable": "^0.12.2",
-    "three": "^0.178.0"
+    "three": "^0.163.0"
   },
   "keywords": [
     "3d",

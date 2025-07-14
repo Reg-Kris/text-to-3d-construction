@@ -17,12 +17,12 @@ import './script';
 document.addEventListener('DOMContentLoaded', () => {
   const prompt = document.getElementById('prompt') as HTMLTextAreaElement;
   const charCount = document.getElementById('char-count');
-  
+
   if (prompt && charCount) {
     const updateCharCount = () => {
       const count = prompt.value.length;
       charCount.textContent = count.toString();
-      
+
       // Change color based on usage
       if (count > 500) {
         charCount.style.color = '#dc3545'; // Red
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         charCount.style.color = '#666'; // Gray
       }
     };
-    
+
     prompt.addEventListener('input', updateCharCount);
     updateCharCount(); // Initial count
   }
