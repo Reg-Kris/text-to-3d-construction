@@ -4,108 +4,238 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { API_CONFIG } from './config';
+import { validateConfig } from './config';
+import { AuthService, User } from './auth';
+import { MeshyAPI, GenerationRequest, MeshyTask } from './meshy-api';
 
-async function generateModel() {
-  const promptElement = document.getElementById('prompt') as HTMLTextAreaElement;
-  if (!promptElement) return;
-  
-  const prompt = promptElement.value;
-  if (!prompt.trim()) {
-    alert('Please enter a construction description');
-    return;
+class ConstructionApp {
+  private currentUser: User | null = null;
+  private currentTask: MeshyTask | null = null;
+
+  constructor() {
+    this.init();
   }
 
-  // Show loading state
-  const loadingElement = document.getElementById('loading');
-  const viewerElement = document.getElementById('viewer');
-  const downloadSection = document.getElementById('download-section');
-  
-  if (loadingElement) loadingElement.style.display = 'block';
-  if (viewerElement) viewerElement.style.display = 'none';
-  if (downloadSection) downloadSection.style.display = 'none';
+  private async init() {
+    // Validate configuration
+    if (!validateConfig()) {
+      this.showError('Application configuration is incomplete. Please contact support.');
+      return;
+    }
 
-  try {
-    // Call 3D generation API
-    const response = await fetch('https://api.tripo3d.ai/v2/openapi/task', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${API_CONFIG.TRIPO_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'text_to_model',
+    // Check authentication
+    this.currentUser = AuthService.getCurrentUser();
+    
+    if (!this.currentUser) {
+      await this.authenticate();
+    }
+
+    if (this.currentUser) {
+      this.showMainInterface();
+    }
+  }
+
+  private async authenticate() {
+    try {
+      this.currentUser = await AuthService.authenticate();
+      if (!this.currentUser) {
+        this.showError('Authentication failed. Access denied.');
+        return;
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      this.showError('Authentication failed. Please try again.');
+    }
+  }
+
+  private showMainInterface() {
+    const container = document.querySelector('.container');
+    if (!container) return;
+
+    // Add welcome message
+    const welcomeDiv = document.createElement('div');
+    welcomeDiv.className = 'welcome-section';
+    welcomeDiv.innerHTML = `
+      <div class="user-info">
+        <span>Welcome, ${this.currentUser?.name}</span>
+        <button onclick="app.logout()" class="logout-btn">Logout</button>
+      </div>
+    `;
+    
+    container.insertBefore(welcomeDiv, container.firstChild);
+
+    // Show the main interface
+    document.body.style.display = 'block';
+  }
+
+  async generateModel() {
+    if (!this.currentUser) {
+      await this.authenticate();
+      return;
+    }
+
+    const promptElement = document.getElementById('prompt') as HTMLTextAreaElement;
+    if (!promptElement) return;
+    
+    const prompt = promptElement.value.trim();
+    if (!prompt) {
+      this.showError('Please enter a construction description');
+      return;
+    }
+
+    if (prompt.length > 600) {
+      this.showError('Description must be 600 characters or less');
+      return;
+    }
+
+    this.showLoading('Generating 3D model...');
+    this.hideViewer();
+    this.hideDownload();
+
+    try {
+      const request: GenerationRequest = {
         prompt: prompt,
-      }),
-    });
+        artStyle: 'realistic',
+        enablePBR: true
+      };
 
-    const task = await response.json();
-
-    // Poll for completion
-    const modelUrl = await pollForCompletion(task.data.task_id);
-
-    // Display model
-    displayModel(modelUrl);
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Failed to generate model. Please try again.');
-  } finally {
-    if (loadingElement) loadingElement.style.display = 'none';
+      // Generate the model using Meshy API with progress tracking
+      this.currentTask = await MeshyAPI.generateModel(request, (stage, progress) => {
+        this.updateProgress(stage, progress);
+      });
+      
+      // Display the model
+      this.displayModel(this.currentTask);
+      
+    } catch (error) {
+      console.error('Generation error:', error);
+      this.showError(`Failed to generate model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      this.hideLoading();
+    }
   }
-}
 
-async function pollForCompletion(taskId: string): Promise<string> {
-  const maxAttempts = 60; // 5 minutes max
-  let attempts = 0;
-
-  while (attempts < maxAttempts) {
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
-
-    const response = await fetch(
-      `https://api.tripo3d.ai/v2/openapi/task/${taskId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${API_CONFIG.TRIPO_API_KEY}`,
-        },
-      },
-    );
-
-    const result = await response.json();
-
-    if (result.data.status === 'success') {
-      return result.data.output.model; // URL to GLB file
+  private displayModel(task: MeshyTask) {
+    if (!task.model_urls?.glb) {
+      this.showError('No model generated. Please try again.');
+      return;
     }
 
-    if (result.data.status === 'failed') {
-      throw new Error('Model generation failed');
+    // Show 3D model in browser
+    const viewer = document.getElementById('viewer') as any;
+    if (viewer) {
+      viewer.src = task.model_urls.glb;
+      viewer.style.display = 'block';
     }
 
-    attempts++;
+    // Enable download options
+    this.showDownloadOptions(task);
   }
 
-  throw new Error('Model generation timed out');
-}
+  private showDownloadOptions(task: MeshyTask) {
+    const downloadSection = document.getElementById('download-section');
+    if (!downloadSection || !task.model_urls) return;
 
-function displayModel(modelUrl: string) {
-  // Show 3D model in browser
-  const viewer = document.getElementById('viewer') as any;
-  if (viewer) {
-    viewer.src = modelUrl;
-    viewer.style.display = 'block';
-  }
+    const formats = [
+      { key: 'glb', label: 'GLB (Recommended for Unreal Engine 5)', extension: 'glb' },
+      { key: 'fbx', label: 'FBX (Traditional Unreal Engine)', extension: 'fbx' },
+      { key: 'usdz', label: 'USDZ (Universal Scene Description)', extension: 'usdz' },
+      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj' }
+    ];
 
-  // Enable download
-  const downloadLink = document.getElementById('download-link') as HTMLAnchorElement;
-  const downloadSection = document.getElementById('download-section');
-  
-  if (downloadLink) {
-    downloadLink.href = modelUrl;
-    downloadLink.download = 'construction-model.glb';
-  }
-  if (downloadSection) {
+    const buttonsHTML = formats
+      .filter(format => task.model_urls![format.key as keyof typeof task.model_urls])
+      .map(format => `
+        <button onclick="app.downloadModel('${task.model_urls![format.key as keyof typeof task.model_urls]}', '${format.extension}')" 
+                class="download-btn">
+          Download ${format.label}
+        </button>
+      `).join('');
+
+    downloadSection.innerHTML = `
+      <div class="download-options">
+        <h3>Download Options</h3>
+        ${buttonsHTML}
+      </div>
+    `;
+    
     downloadSection.style.display = 'block';
   }
+
+  async downloadModel(url: string, extension: string) {
+    try {
+      const filename = `construction-model-${Date.now()}.${extension}`;
+      await MeshyAPI.downloadModel(url, filename);
+    } catch (error) {
+      console.error('Download error:', error);
+      this.showError('Failed to download model. Please try again.');
+    }
+  }
+
+  logout() {
+    AuthService.logout();
+    location.reload();
+  }
+
+  private showLoading(message: string) {
+    const loading = document.getElementById('loading');
+    if (loading) {
+      loading.innerHTML = `
+        <div class="loading-content">
+          <div class="loading-message">${message}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="progress-text">0%</div>
+        </div>
+      `;
+      loading.style.display = 'block';
+    }
+  }
+
+  private updateProgress(stage: string, progress: number) {
+    const loading = document.getElementById('loading');
+    if (loading) {
+      const messageEl = loading.querySelector('.loading-message');
+      const progressFill = loading.querySelector('.progress-fill') as HTMLElement;
+      const progressText = loading.querySelector('.progress-text');
+      
+      if (messageEl) messageEl.textContent = stage;
+      if (progressFill) progressFill.style.width = `${progress}%`;
+      if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+    }
+  }
+
+  private hideLoading() {
+    const loading = document.getElementById('loading');
+    if (loading) {
+      loading.style.display = 'none';
+    }
+  }
+
+  private showError(message: string) {
+    alert(message);
+    console.error(message);
+  }
+
+  private hideViewer() {
+    const viewer = document.getElementById('viewer');
+    if (viewer) {
+      viewer.style.display = 'none';
+    }
+  }
+
+  private hideDownload() {
+    const downloadSection = document.getElementById('download-section');
+    if (downloadSection) {
+      downloadSection.style.display = 'none';
+    }
+  }
 }
 
-// Make function available globally
-(window as any).generateModel = generateModel;
+// Initialize the application
+const app = new ConstructionApp();
+
+// Make functions available globally
+(window as any).app = app;
+(window as any).generateModel = () => app.generateModel();
