@@ -1,0 +1,32 @@
+{
+  "name": "text-to-3d-construction",
+  "version": "1.0.0",
+  "description": "PROPRIETARY: Text-to-3D Construction Platform - AI-powered 3D model generation for construction businesses",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3",
+    "prettier": "^3.0.0"
+  },
+  "dependencies": {
+    "@google/model-viewer": "^3.5.0"
+  },
+  "keywords": [
+    "3d",
+    "construction",
+    "modeling",
+    "proprietary",
+    "meshy-ai",
+    "airtable"
+  ],
+  "author": "Kristopher Gerasimov <gerasimovkris@gmail.com>",
+  "license": "PROPRIETARY"
+}
