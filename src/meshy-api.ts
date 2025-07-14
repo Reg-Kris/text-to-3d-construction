@@ -4,7 +4,7 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { API_CONFIG } from './config';
+import { ApiClient } from './api-client';
 
 export interface MeshyTask {
   id: string;
@@ -39,11 +39,6 @@ export interface DeviceCapabilities {
 }
 
 export class MeshyAPI {
-  private static readonly BASE_URL = API_CONFIG.MESHY_API_URL;
-  private static readonly HEADERS = {
-    'Authorization': `Bearer ${API_CONFIG.MESHY_API_KEY}`,
-    'Content-Type': 'application/json',
-  };
 
   // Detect device capabilities
   static getDeviceCapabilities(): DeviceCapabilities {
@@ -77,18 +72,13 @@ export class MeshyAPI {
       ...(request.seed && { seed: request.seed })
     };
 
-    const response = await fetch(`${this.BASE_URL}/text-to-3d`, {
-      method: 'POST',
-      headers: this.HEADERS,
-      body: JSON.stringify(payload)
-    });
+    const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Preview task failed: ${error.message || response.statusText}`);
+    if (!response.success) {
+      throw new Error(`Preview task failed: ${response.error || response.message || 'Unknown error'}`);
     }
 
-    return await response.json();
+    return response.data;
   }
 
   // Stage 2: Create refine task
@@ -98,32 +88,24 @@ export class MeshyAPI {
       preview_task_id: previewTaskId
     };
 
-    const response = await fetch(`${this.BASE_URL}/text-to-3d`, {
-      method: 'POST',
-      headers: this.HEADERS,
-      body: JSON.stringify(payload)
-    });
+    const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Refine task failed: ${error.message || response.statusText}`);
+    if (!response.success) {
+      throw new Error(`Refine task failed: ${response.error || response.message || 'Unknown error'}`);
     }
 
-    return await response.json();
+    return response.data;
   }
 
   // Get task status
   static async getTaskStatus(taskId: string): Promise<MeshyTask> {
-    const response = await fetch(`${this.BASE_URL}/text-to-3d/${taskId}`, {
-      headers: this.HEADERS
-    });
+    const response = await ApiClient.get<MeshyTask>(`/text-to-3d/${taskId}`);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Task status failed: ${error.message || response.statusText}`);
+    if (!response.success) {
+      throw new Error(`Task status failed: ${response.error || response.message || 'Unknown error'}`);
     }
 
-    return await response.json();
+    return response.data;
   }
 
   // Poll for task completion

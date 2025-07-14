@@ -9,12 +9,14 @@ import { AuthService, User } from './auth';
 import { MeshyAPI, GenerationRequest, MeshyTask } from './meshy-api';
 import { AirtableService, ProjectRecord } from './airtable-service';
 import { DeviceUtils } from './device-utils';
+import { ThreeViewer, ModelInfo } from './three-viewer';
 
 class ConstructionApp {
   private currentUser: User | null = null;
   private currentTask: MeshyTask | null = null;
   private currentProject: ProjectRecord | null = null;
   private generationStartTime: number = 0;
+  private threeViewer: ThreeViewer | null = null;
 
   constructor() {
     this.init();
@@ -81,6 +83,9 @@ class ConstructionApp {
       this.addQualitySettings();
     }
 
+    // Initialize Three.js viewer
+    this.initThreeViewer();
+
     // Show the main interface
     document.body.style.display = 'block';
   }
@@ -108,6 +113,45 @@ class ConstructionApp {
     `;
     
     inputSection.appendChild(qualityDiv);
+  }
+
+  private initThreeViewer() {
+    const viewerContainer = document.getElementById('viewer-container');
+    if (!viewerContainer) {
+      // Create viewer container if it doesn't exist
+      const outputSection = document.querySelector('.output-section');
+      if (outputSection) {
+        const container = document.createElement('div');
+        container.id = 'viewer-container';
+        container.style.width = '100%';
+        container.style.height = '400px';
+        container.style.display = 'none';
+        container.style.border = '1px solid #ddd';
+        container.style.borderRadius = '5px';
+        container.style.marginBottom = '20px';
+        
+        // Insert before download section
+        const downloadSection = document.getElementById('download-section');
+        if (downloadSection) {
+          outputSection.insertBefore(container, downloadSection);
+        } else {
+          outputSection.appendChild(container);
+        }
+      }
+    }
+
+    if (viewerContainer) {
+      try {
+        this.threeViewer = new ThreeViewer({
+          container: viewerContainer as HTMLElement,
+          enableShadows: !DeviceUtils.getDeviceInfo().isMobile,
+          backgroundColor: 0xf5f5f5
+        });
+      } catch (error) {
+        console.error('Failed to initialize Three.js viewer:', error);
+        this.showError('Failed to initialize 3D viewer. Your browser may not support WebGL.');
+      }
+    }
   }
 
   async generateModel() {
@@ -201,21 +245,135 @@ class ConstructionApp {
     }
   }
 
-  private displayModel(task: MeshyTask) {
+  private async displayModel(task: MeshyTask) {
     if (!task.model_urls?.glb) {
       this.showError('No model generated. Please try again.');
       return;
     }
 
-    // Show 3D model in browser
-    const viewer = document.getElementById('viewer') as any;
-    if (viewer) {
-      viewer.src = task.model_urls.glb;
-      viewer.style.display = 'block';
+    if (!this.threeViewer) {
+      this.showError('3D viewer not initialized. Please refresh the page.');
+      return;
     }
 
-    // Enable download options
-    this.showDownloadOptions(task);
+    try {
+      this.showLoading('Loading 3D model...');
+      
+      // Load model with progress tracking
+      const modelInfo = await this.threeViewer.loadModel(
+        task.model_urls.glb, 
+        'glb', 
+        (progress) => {
+          this.updateProgress('Loading model...', progress);
+        }
+      );
+
+      // Show viewer container
+      const viewerContainer = document.getElementById('viewer-container');
+      if (viewerContainer) {
+        viewerContainer.style.display = 'block';
+        this.addViewerControls(viewerContainer);
+      }
+
+      // Add model info to the UI
+      this.showModelInfo(modelInfo);
+
+      // Enable download options
+      this.showDownloadOptions(task);
+      
+    } catch (error) {
+      console.error('Failed to display model:', error);
+      this.showError('Failed to load 3D model. Please try downloading the file directly.');
+    } finally {
+      this.hideLoading();
+    }
+  }
+
+  private addViewerControls(container: HTMLElement) {
+    // Remove existing controls if any
+    const existingControls = container.querySelector('.viewer-controls');
+    if (existingControls) {
+      existingControls.remove();
+    }
+
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'viewer-controls';
+    controlsDiv.innerHTML = `
+      <button class="viewer-btn" onclick="app.setViewMode('perspective')">3D</button>
+      <button class="viewer-btn" onclick="app.setViewMode('top')">Top</button>
+      <button class="viewer-btn" onclick="app.setViewMode('front')">Front</button>
+      <button class="viewer-btn" onclick="app.setViewMode('side')">Side</button>
+      <button class="viewer-btn" onclick="app.resetCamera()">Reset</button>
+      <button class="viewer-btn" onclick="app.takeScreenshot()">📷</button>
+    `;
+    
+    container.appendChild(controlsDiv);
+  }
+
+  // Public methods for viewer controls
+  setViewMode(mode: 'perspective' | 'top' | 'front' | 'side') {
+    if (this.threeViewer) {
+      this.threeViewer.setViewMode(mode);
+    }
+  }
+
+  resetCamera() {
+    if (this.threeViewer) {
+      this.threeViewer.resetCamera();
+    }
+  }
+
+  takeScreenshot() {
+    if (this.threeViewer) {
+      try {
+        const dataURL = this.threeViewer.takeScreenshot();
+        const link = document.createElement('a');
+        link.download = `construction-model-screenshot-${Date.now()}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showSuccess('Screenshot saved successfully!');
+      } catch (error) {
+        console.error('Screenshot failed:', error);
+        this.showError('Failed to take screenshot.');
+      }
+    }
+  }
+
+  private showModelInfo(info: ModelInfo) {
+    const deviceInfo = DeviceUtils.getDeviceInfo();
+    const isHighPoly = info.triangles > deviceInfo.maxPolyCount;
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'model-info';
+    infoDiv.innerHTML = `
+      <div class="model-stats">
+        <h4>Model Information</h4>
+        <div class="stats-grid">
+          <div class="stat">
+            <label>Triangles:</label>
+            <span class="${isHighPoly ? 'warning' : ''}">${info.triangles.toLocaleString()}</span>
+          </div>
+          <div class="stat">
+            <label>Vertices:</label>
+            <span>${info.vertices.toLocaleString()}</span>
+          </div>
+          <div class="stat">
+            <label>Memory:</label>
+            <span>${info.memoryUsage}MB</span>
+          </div>
+        </div>
+        ${isHighPoly ? '<div class="warning">⚠️ High polygon count may affect performance on this device</div>' : ''}
+      </div>
+    `;
+
+    // Insert after viewer container
+    const viewerContainer = document.getElementById('viewer-container');
+    if (viewerContainer && viewerContainer.parentNode) {
+      viewerContainer.parentNode.insertBefore(infoDiv, viewerContainer.nextSibling);
+    }
   }
 
   private showDownloadOptions(task: MeshyTask) {
@@ -360,9 +518,15 @@ class ConstructionApp {
   }
 
   private hideViewer() {
-    const viewer = document.getElementById('viewer');
-    if (viewer) {
-      viewer.style.display = 'none';
+    const viewerContainer = document.getElementById('viewer-container');
+    if (viewerContainer) {
+      viewerContainer.style.display = 'none';
+    }
+    
+    // Remove model info if it exists
+    const modelInfo = document.querySelector('.model-info');
+    if (modelInfo) {
+      modelInfo.remove();
     }
   }
 

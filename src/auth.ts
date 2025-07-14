@@ -24,7 +24,7 @@ export class AuthService {
     }
 
     // Check if email is in whitelist
-    if (!API_CONFIG.ALLOWED_EMAILS.includes(email.toLowerCase())) {
+    if (!API_CONFIG.AUTHORIZED_EMAILS.includes(email.toLowerCase())) {
       alert('Access denied. Your email is not authorized to use this application.');
       return null;
     }
@@ -54,7 +54,7 @@ export class AuthService {
     if (stored) {
       try {
         const user = JSON.parse(stored);
-        if (user.authenticated && API_CONFIG.ALLOWED_EMAILS.includes(user.email)) {
+        if (user.authenticated && API_CONFIG.AUTHORIZED_EMAILS.includes(user.email)) {
           this.currentUser = user;
           return user;
         }
