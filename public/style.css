@@ -410,8 +410,15 @@ model-viewer {
   top: 10px;
   right: 10px;
   display: flex;
-  gap: 5px;
+  flex-direction: column;
+  gap: 8px;
   z-index: 100;
+}
+
+.control-group {
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
 
 .viewer-btn {
@@ -422,9 +429,24 @@ model-viewer {
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .viewer-btn:hover {
+  background: white;
+}
+
+.viewer-select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.viewer-select:hover {
   background: white;
 }
 

@@ -299,12 +299,24 @@ class ConstructionApp {
     const controlsDiv = document.createElement('div');
     controlsDiv.className = 'viewer-controls';
     controlsDiv.innerHTML = `
-      <button class="viewer-btn" onclick="app.setViewMode('perspective')">3D</button>
-      <button class="viewer-btn" onclick="app.setViewMode('top')">Top</button>
-      <button class="viewer-btn" onclick="app.setViewMode('front')">Front</button>
-      <button class="viewer-btn" onclick="app.setViewMode('side')">Side</button>
-      <button class="viewer-btn" onclick="app.resetCamera()">Reset</button>
-      <button class="viewer-btn" onclick="app.takeScreenshot()">📷</button>
+      <div class="control-group">
+        <button class="viewer-btn" onclick="app.setViewMode('perspective')">3D</button>
+        <button class="viewer-btn" onclick="app.setViewMode('top')">Top</button>
+        <button class="viewer-btn" onclick="app.setViewMode('front')">Front</button>
+        <button class="viewer-btn" onclick="app.setViewMode('side')">Side</button>
+        <button class="viewer-btn" onclick="app.resetCamera()">Reset</button>
+        <button class="viewer-btn" onclick="app.takeScreenshot()">📷</button>
+      </div>
+      ${DeviceUtils.getDeviceInfo().isMobile || DeviceUtils.getDeviceInfo().isTablet ? `
+        <div class="control-group">
+          <button class="viewer-btn" onclick="app.toggleLOD()" id="lod-toggle">LOD: ON</button>
+          <select class="viewer-select" onchange="app.setLODLevel(this.value)" id="lod-level">
+            <option value="0">High Quality</option>
+            <option value="1">Medium Quality</option>
+            <option value="2">Low Quality</option>
+          </select>
+        </div>
+      ` : ''}
     `;
     
     container.appendChild(controlsDiv);
@@ -339,6 +351,31 @@ class ConstructionApp {
         console.error('Screenshot failed:', error);
         this.showError('Failed to take screenshot.');
       }
+    }
+  }
+
+  toggleLOD() {
+    if (this.threeViewer) {
+      this.threeViewer.toggleLOD();
+      const stats = this.threeViewer.getStats();
+      
+      // Update button text
+      const toggleBtn = document.getElementById('lod-toggle');
+      if (toggleBtn) {
+        toggleBtn.textContent = `LOD: ${stats.lod.enabled ? 'ON' : 'OFF'}`;
+      }
+      
+      this.showSuccess(`LOD ${stats.lod.enabled ? 'enabled' : 'disabled'}`);
+    }
+  }
+
+  setLODLevel(level: string | number) {
+    if (this.threeViewer) {
+      const levelNum = typeof level === 'string' ? parseInt(level) : level;
+      this.threeViewer.setLODLevel(levelNum);
+      
+      const qualityNames = ['High', 'Medium', 'Low'];
+      this.showSuccess(`Quality set to ${qualityNames[levelNum] || 'Unknown'}`);
     }
   }
 

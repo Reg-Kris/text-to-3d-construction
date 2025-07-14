@@ -51,6 +51,13 @@ export class ThreeViewer {
     lastFrameTime: 0
   };
 
+  // LOD (Level of Detail) system
+  private lodSystem = {
+    enabled: false,
+    levels: [] as Array<{ distance: number; quality: number }>,
+    currentLevel: 0
+  };
+
   constructor(config: ViewerConfig) {
     this.container = config.container;
     this.initRenderer(config);
@@ -58,6 +65,7 @@ export class ThreeViewer {
     this.initCamera(config);
     this.initControls();
     this.initLighting();
+    this.initLODSystem();
     this.startRenderLoop();
     
     // Handle window resize
@@ -160,6 +168,121 @@ export class ThreeViewer {
     }
   }
 
+  private initLODSystem(): void {
+    // Configure LOD levels based on device capabilities
+    if (this.deviceInfo.isMobile) {
+      this.lodSystem = {
+        enabled: true,
+        levels: [
+          { distance: 5, quality: 0.3 },   // Close - 30% quality
+          { distance: 15, quality: 0.15 }, // Medium - 15% quality  
+          { distance: 30, quality: 0.05 }  // Far - 5% quality
+        ],
+        currentLevel: 0
+      };
+    } else if (this.deviceInfo.isTablet) {
+      this.lodSystem = {
+        enabled: true,
+        levels: [
+          { distance: 8, quality: 0.7 },   // Close - 70% quality
+          { distance: 20, quality: 0.4 },  // Medium - 40% quality
+          { distance: 40, quality: 0.2 }   // Far - 20% quality
+        ],
+        currentLevel: 0
+      };
+    } else {
+      // Desktop - less aggressive LOD
+      this.lodSystem = {
+        enabled: false, // Disable LOD for desktop by default
+        levels: [
+          { distance: 10, quality: 1.0 },  // Close - 100% quality
+          { distance: 25, quality: 0.8 },  // Medium - 80% quality
+          { distance: 50, quality: 0.5 }   // Far - 50% quality
+        ],
+        currentLevel: 0
+      };
+    }
+  }
+
+  private updateLOD(): void {
+    if (!this.lodSystem.enabled || !this.currentModel) return;
+
+    const cameraDistance = this.camera.position.distanceTo(this.currentModel.position);
+    let newLevel = this.lodSystem.levels.length - 1;
+
+    // Find appropriate LOD level
+    for (let i = 0; i < this.lodSystem.levels.length; i++) {
+      if (cameraDistance <= this.lodSystem.levels[i].distance) {
+        newLevel = i;
+        break;
+      }
+    }
+
+    // Only update if level changed
+    if (newLevel !== this.lodSystem.currentLevel) {
+      this.lodSystem.currentLevel = newLevel;
+      this.applyLODLevel(newLevel);
+    }
+  }
+
+  private applyLODLevel(level: number): void {
+    if (!this.currentModel) return;
+
+    const quality = this.lodSystem.levels[level].quality;
+    
+    this.currentModel.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const mesh = child as THREE.Mesh;
+        
+        // Adjust material quality based on LOD level
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(mat => this.adjustMaterialForLOD(mat, quality));
+          } else {
+            this.adjustMaterialForLOD(mesh.material, quality);
+          }
+        }
+
+        // Hide very small objects at low LOD levels
+        const boundingBox = new THREE.Box3().setFromObject(mesh);
+        const size = boundingBox.getSize(new THREE.Vector3()).length();
+        mesh.visible = size > (0.1 / quality); // Hide objects smaller than threshold
+      }
+    });
+  }
+
+  private adjustMaterialForLOD(material: THREE.Material, quality: number): void {
+    if (material instanceof THREE.MeshStandardMaterial) {
+      // Reduce texture resolution and detail for lower quality
+      if (quality < 0.5) {
+        // For low quality, increase roughness and reduce detail
+        material.roughness = Math.max(material.roughness, 0.8);
+        material.metalness = Math.min(material.metalness, 0.2);
+        
+        // Disable normal maps for very low quality
+        if (quality < 0.2 && material.normalMap) {
+          material.normalMap = null;
+          material.needsUpdate = true;
+        }
+      }
+    }
+  }
+
+  private monitorPerformance(): void {
+    // Automatically adjust LOD based on performance
+    if (this.stats.frameRate < 30 && this.deviceInfo.isMobile) {
+      // Enable more aggressive LOD if performance is poor
+      if (!this.lodSystem.enabled) {
+        this.lodSystem.enabled = true;
+        console.log('Performance LOD enabled due to low frame rate');
+      }
+    } else if (this.stats.frameRate > 55 && this.lodSystem.enabled && this.deviceInfo.isDesktop) {
+      // Disable LOD if performance is very good on desktop
+      this.lodSystem.enabled = false;
+      console.log('Performance LOD disabled due to high frame rate');
+    }
+  }
+
   private startRenderLoop(): void {
     const render = (timestamp: number) => {
       // Calculate frame rate and render time
@@ -170,6 +293,15 @@ export class ThreeViewer {
       const renderStart = performance.now();
       
       this.controls.update();
+      
+      // Update LOD system based on camera distance
+      this.updateLOD();
+      
+      // Monitor performance every 60 frames (roughly 1 second at 60fps)
+      if (Math.floor(timestamp / 1000) % 1 === 0) {
+        this.monitorPerformance();
+      }
+      
       this.renderer.render(this.scene, this.camera);
       
       this.stats.renderTime = performance.now() - renderStart;
@@ -370,8 +502,33 @@ export class ThreeViewer {
     this.controls.update();
   }
 
-  getStats(): typeof this.stats {
-    return { ...this.stats };
+  getStats() {
+    return { 
+      ...this.stats,
+      lod: {
+        enabled: this.lodSystem.enabled,
+        currentLevel: this.lodSystem.currentLevel,
+        totalLevels: this.lodSystem.levels.length,
+        currentQuality: this.lodSystem.levels[this.lodSystem.currentLevel]?.quality || 1.0
+      }
+    };
+  }
+
+  // LOD Control Methods
+  toggleLOD(enabled?: boolean): void {
+    this.lodSystem.enabled = enabled !== undefined ? enabled : !this.lodSystem.enabled;
+    
+    if (!this.lodSystem.enabled && this.currentModel) {
+      // Reset to full quality when LOD is disabled
+      this.applyLODLevel(0);
+    }
+  }
+
+  setLODLevel(level: number): void {
+    if (level >= 0 && level < this.lodSystem.levels.length) {
+      this.lodSystem.currentLevel = level;
+      this.applyLODLevel(level);
+    }
   }
 
   takeScreenshot(width = 1920, height = 1080): string {
