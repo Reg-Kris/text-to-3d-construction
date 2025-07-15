@@ -5,7 +5,7 @@
  */
 
 import { CacheManager } from './cache-manager';
-import { Logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface LoadingChunk {
   id: string;
@@ -76,7 +76,7 @@ export class ProgressiveLoader {
       // Check cache first
       const cached = await this.cacheManager.getCachedModel(url);
       if (cached) {
-        Logger.log(`Model loaded from cache: ${url}`);
+        logger.info(`Model loaded from cache: ${url}`);
         options.onComplete?.(cached);
         return cached;
       }
@@ -94,7 +94,7 @@ export class ProgressiveLoader {
           return await this.loadStandard(url, options);
       }
     } catch (error) {
-      Logger.error('Progressive loading failed:', error);
+      logger.error('Progressive loading failed:', undefined, error);
       options.onError?.(error as Error);
       throw error;
     }
@@ -119,7 +119,7 @@ export class ProgressiveLoader {
     url: string,
     options: any
   ): Promise<ArrayBuffer> {
-    Logger.log(`Streaming model: ${url}`);
+    logger.info(`Streaming model: ${url}`);
 
     return new Promise(async (resolve, reject) => {
       try {
@@ -207,7 +207,7 @@ export class ProgressiveLoader {
         })
         .catch((error) => {
           this.currentLoads--;
-          Logger.error(`Failed to load chunk ${chunk.id}:`, error);
+          logger.error(`Failed to load chunk ${chunk.id}:`, undefined, error);
         });
 
       loadPromises.push(loadPromise);
@@ -255,10 +255,10 @@ export class ProgressiveLoader {
       const duration = performance.now() - startTime;
       this.updateNetworkStats(chunk.size, duration);
 
-      Logger.log(`Loaded chunk ${chunk.id}: ${chunk.size} bytes in ${duration.toFixed(1)}ms`);
+      logger.info(`Loaded chunk ${chunk.id}: ${chunk.size} bytes in ${duration.toFixed(1)}ms`);
 
     } catch (error) {
-      Logger.error(`Failed to load chunk ${chunk.id}:`, error);
+      logger.error(`Failed to load chunk ${chunk.id}:`, undefined, error);
       throw error;
     }
   }
@@ -292,7 +292,7 @@ export class ProgressiveLoader {
     url: string,
     options: any
   ): Promise<ArrayBuffer> {
-    Logger.log(`Progressive loading: ${url}`);
+    logger.info(`Progressive loading: ${url}`);
 
     // Load first chunk immediately for preview
     const firstChunkSize = Math.min(this.chunkSize, 1024 * 1024); // Max 1MB for first chunk
@@ -339,7 +339,7 @@ export class ProgressiveLoader {
   }
 
   private async loadStandard(url: string, options: any): Promise<ArrayBuffer> {
-    Logger.log(`Standard loading: ${url}`);
+    logger.info(`Standard loading: ${url}`);
 
     const startTime = performance.now();
     const response = await fetch(url);
@@ -443,13 +443,13 @@ export class ProgressiveLoader {
     if (!request) return;
 
     try {
-      Logger.log(`Preloading model: ${request.url}`);
+      logger.info(`Preloading model: ${request.url}`);
       await this.loadModelProgressively(request.url, {
         priority: 'low',
         preload: true,
       });
     } catch (error) {
-      Logger.warn(`Preload failed for ${request.url}:`, error);
+      logger.warn(`Preload failed for ${request.url}:`, undefined, error);
     }
   }
 
@@ -466,7 +466,7 @@ export class ProgressiveLoader {
       format: this.getFormatFromUrl(url),
     });
 
-    Logger.log(`Model queued for preload: ${url} (priority: ${priority})`);
+    logger.info(`Model queued for preload: ${url} (priority: ${priority})`);
   }
 
   private getFormatFromUrl(url: string): string {

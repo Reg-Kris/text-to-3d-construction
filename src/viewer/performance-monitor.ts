@@ -127,8 +127,8 @@ export class PerformanceMonitor {
     // Get WebGL info
     const debugInfo = this.gl.getExtension('WEBGL_debug_renderer_info');
     if (debugInfo) {
-      this.stats.webglStats.vendorInfo = this.gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || '';
-      this.stats.webglStats.rendererInfo = this.gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '';
+      this.stats.webglStats.vendorInfo = (this.gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) as string) || '';
+      this.stats.webglStats.rendererInfo = (this.gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string) || '';
     }
 
     // Get capabilities
@@ -256,7 +256,7 @@ export class PerformanceMonitor {
       this.stats.webglStats.shaderPrograms = this.estimateShaderProgramCount();
 
     } catch (error) {
-      logger.warn('Failed to update WebGL memory stats:', error);
+      logger.warn('Failed to update WebGL memory stats:', undefined, error);
     }
   }
 
@@ -288,7 +288,7 @@ export class PerformanceMonitor {
     return 5; // Default estimate for typical 3D applications
   }
 
-  trackNetworkRequest(url: string, startTime: number, endTime: number, bytes: number, success: boolean): void {
+  trackNetworkRequest(_url: string, startTime: number, endTime: number, bytes: number, success: boolean): void {
     this.networkRequests.push({
       timestamp: startTime,
       duration: endTime - startTime,

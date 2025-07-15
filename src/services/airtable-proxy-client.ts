@@ -8,7 +8,7 @@
 
 import { ApiClient } from '../api-client';
 import { API_CONFIG } from '../config';
-import { Logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 export interface AirtableRecord {
   id?: string;
@@ -71,7 +71,7 @@ export class AirtableProxyClient {
   private static eventListeners = new Map<string, Set<Function>>();
   private static maxRetries = 3;
   private static batchDelay = 2000; // 2 seconds
-  private static batchTimer: NodeJS.Timeout | null = null;
+  private static batchTimer: number | null = null;
   /**
    * Get records from a table with optional filtering
    */
@@ -500,11 +500,11 @@ export class AirtableProxyClient {
         }
       }
 
-      Logger.log(`Batch operations completed: ${operations.length} operations on ${tableName}`);
+      logger.info(`Batch operations completed: ${operations.length} operations on ${tableName}`);
       return results;
 
     } catch (error) {
-      Logger.error('Batch operations failed:', error);
+      logger.error('Batch operations failed:', undefined, error);
       throw error;
     }
   }
@@ -529,7 +529,7 @@ export class AirtableProxyClient {
     const cached = this.getFromCache(cacheKey);
 
     if (cached && !options.forceRefresh) {
-      Logger.log(`Cache hit for ${tableName} query`);
+      logger.info(`Cache hit for ${tableName} query`);
       return cached;
     }
 
@@ -547,7 +547,7 @@ export class AirtableProxyClient {
    */
   static async syncPendingUpdates(): Promise<void> {
     if (this.syncState.syncInProgress) {
-      Logger.log('Sync already in progress, skipping');
+      logger.info('Sync already in progress, skipping');
       return;
     }
 
@@ -565,7 +565,7 @@ export class AirtableProxyClient {
           this.syncState.pendingUpdates.delete(update.id);
           this.emit('sync-success', update);
         } catch (error) {
-          Logger.error(`Sync failed for update ${update.id}:`, error);
+          logger.error(`Sync failed for update ${update.id}:`, undefined, error);
           
           update.retryCount++;
           if (update.retryCount >= this.maxRetries) {
@@ -587,7 +587,7 @@ export class AirtableProxyClient {
       this.syncState.lastSync = Date.now();
       this.syncState.connectionState = failed.length > 0 ? 'offline' : 'online';
       
-      Logger.log(`Sync completed: ${updates.length - failed.length}/${updates.length} successful`);
+      logger.info(`Sync completed: ${updates.length - failed.length}/${updates.length} successful`);
 
     } finally {
       this.syncState.syncInProgress = false;
@@ -628,10 +628,10 @@ export class AirtableProxyClient {
           }
         });
 
-        Logger.log(`Processed batch for ${tableName}: ${allOperations.length} operations`);
+        logger.info(`Processed batch for ${tableName}: ${allOperations.length} operations`);
         
       } catch (error) {
-        Logger.error(`Batch processing failed for ${tableName}:`, error);
+        logger.error(`Batch processing failed for ${tableName}:`, undefined, error);
         
         // Increment retry count
         batches.forEach(batch => {
@@ -766,7 +766,7 @@ export class AirtableProxyClient {
         try {
           listener(data);
         } catch (error) {
-          Logger.error(`Event listener error for ${event}:`, error);
+          logger.error(`Event listener error for ${event}:`, undefined, error);
         }
       });
     }
@@ -806,7 +806,7 @@ export class AirtableProxyClient {
 
   static clearCache(): void {
     this.cache.clear();
-    Logger.log('Airtable cache cleared');
+    logger.info('Airtable cache cleared');
   }
 
   static flushBatchQueue(): void {

@@ -40,8 +40,8 @@ interface LODLevel {
 }
 
 class ModelProcessor {
-  private processingQueue: ProcessingTask[] = [];
-  private isProcessing = false;
+  public processingQueue: ProcessingTask[] = [];
+  public isProcessing = false;
 
   constructor() {
     this.startProcessingLoop();
@@ -510,7 +510,7 @@ class ModelProcessor {
     };
   }
 
-  private async extractMaterials(data: any): Promise<{
+  private async extractMaterials(_data: any): Promise<{
     materials: any[];
     textureUrls: string[];
     shaderInfo: any;

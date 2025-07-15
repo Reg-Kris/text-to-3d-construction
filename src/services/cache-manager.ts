@@ -4,7 +4,7 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { Logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface CacheOptions {
   ttl?: number; // Time to live in milliseconds
@@ -51,9 +51,9 @@ export class CacheManager {
       await this.initIndexedDB();
       await this.initCacheAPI();
       await this.cleanupExpiredCache();
-      Logger.log('CacheManager initialized successfully');
+      logger.info('CacheManager initialized successfully');
     } catch (error) {
-      Logger.error('Failed to initialize CacheManager:', error);
+      logger.error('Failed to initialize CacheManager:', undefined, error);
     }
   }
 
@@ -62,7 +62,7 @@ export class CacheManager {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
-        Logger.error('Failed to open IndexedDB');
+        logger.error('Failed to open IndexedDB');
         reject(request.error);
       };
 
@@ -97,9 +97,9 @@ export class CacheManager {
     if ('caches' in window) {
       try {
         this.cacheApi = await caches.open('text-to-3d-v1');
-        Logger.log('Browser Cache API initialized');
+        logger.info('Browser Cache API initialized');
       } catch (error) {
-        Logger.warn('Browser Cache API not available:', error);
+        logger.warn('Browser Cache API not available:', undefined, error);
       }
     }
   }
@@ -146,9 +146,9 @@ export class CacheManager {
         await this.cacheApi.put(url, response);
       }
 
-      Logger.log(`Model cached: ${url} (${this.formatBytes(data.byteLength)})`);
+      logger.info(`Model cached: ${url} (${this.formatBytes(data.byteLength)})`);
     } catch (error) {
-      Logger.error('Failed to cache model:', error);
+      logger.error('Failed to cache model:', undefined, error);
     }
   }
 
@@ -183,7 +183,7 @@ export class CacheManager {
 
       return null;
     } catch (error) {
-      Logger.error('Failed to get cached model:', error);
+      logger.error('Failed to get cached model:', undefined, error);
       return null;
     }
   }
@@ -201,9 +201,9 @@ export class CacheManager {
         compressed: !!options.compression,
       });
 
-      Logger.log(`Texture cached: ${url} (${this.formatBytes(data.byteLength)})`);
+      logger.info(`Texture cached: ${url} (${this.formatBytes(data.byteLength)})`);
     } catch (error) {
-      Logger.error('Failed to cache texture:', error);
+      logger.error('Failed to cache texture:', undefined, error);
     }
   }
 
@@ -222,7 +222,7 @@ export class CacheManager {
       }
       return null;
     } catch (error) {
-      Logger.error('Failed to get cached texture:', error);
+      logger.error('Failed to get cached texture:', undefined, error);
       return null;
     }
   }
@@ -256,7 +256,7 @@ export class CacheManager {
         newestItem: Math.max(...timestamps) || 0,
       };
     } catch (error) {
-      Logger.error('Failed to get cache stats:', error);
+      logger.error('Failed to get cache stats:', undefined, error);
       return {
         totalSize: 0,
         modelCount: 0,
@@ -270,7 +270,6 @@ export class CacheManager {
 
   async clearExpiredCache(): Promise<void> {
     try {
-      const now = Date.now();
       
       // Clear expired models
       const models = await this.getAllFromStore('models');
@@ -296,9 +295,9 @@ export class CacheManager {
         }
       }
 
-      Logger.log('Expired cache cleared');
+      logger.info('Expired cache cleared');
     } catch (error) {
-      Logger.error('Failed to clear expired cache:', error);
+      logger.error('Failed to clear expired cache:', undefined, error);
     }
   }
 
@@ -324,9 +323,9 @@ export class CacheManager {
       this.memoryCache.clear();
       this.currentMemorySize = 0;
 
-      Logger.log('All cache cleared');
+      logger.info('All cache cleared');
     } catch (error) {
-      Logger.error('Failed to clear all cache:', error);
+      logger.error('Failed to clear all cache:', undefined, error);
     }
   }
 
@@ -444,7 +443,7 @@ export class CacheManager {
         await this.storeInIndexedDB('metadata', metadata);
       }
     } catch (error) {
-      Logger.warn('Failed to update last accessed time:', error);
+      logger.warn('Failed to update last accessed time:', undefined, error);
     }
   }
 
@@ -507,7 +506,7 @@ export class CacheManager {
         
         return compressed.buffer;
       } catch (error) {
-        Logger.warn('Compression failed, storing uncompressed:', error);
+        logger.warn('Compression failed, storing uncompressed:', undefined, error);
       }
     }
     return data;
@@ -541,7 +540,7 @@ export class CacheManager {
         
         return decompressed.buffer;
       } catch (error) {
-        Logger.warn('Decompression failed:', error);
+        logger.warn('Decompression failed:', undefined, error);
       }
     }
     return data;

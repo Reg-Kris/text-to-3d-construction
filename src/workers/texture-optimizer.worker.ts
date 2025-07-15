@@ -46,8 +46,8 @@ interface OptimizationResult {
 class TextureOptimizer {
   private canvas: OffscreenCanvas;
   private ctx: OffscreenCanvasRenderingContext2D;
-  private processingQueue: TextureOptimizationTask[] = [];
-  private isProcessing = false;
+  public processingQueue: TextureOptimizationTask[] = [];
+  public isProcessing = false;
 
   constructor() {
     this.canvas = new OffscreenCanvas(1, 1);
