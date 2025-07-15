@@ -7,7 +7,6 @@
 import { ApiClient } from '../api-client';
 import { ProjectService } from './project-service';
 import { DownloadRecord } from '../types';
-import { API_CONFIG } from '../config';
 
 export class DownloadService {
   static async recordDownload(
@@ -21,7 +20,7 @@ export class DownloadService {
     };
 
     try {
-      await ApiClient.airtablePost(`/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads`, downloadData);
+      await ApiClient.airtablePost('/Downloads', downloadData);
 
       // Increment download count in Projects table
       if (download.project_id) {
@@ -44,7 +43,7 @@ export class DownloadService {
   ): Promise<DownloadRecord[]> {
     try {
       const response = await ApiClient.airtableGet(
-        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={user_email}='${userEmail}'&maxRecords=${limit}&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+        `/Downloads?filterByFormula={user_email}='${userEmail}'&maxRecords=${limit}&sort[0][field]=downloaded_at&sort[0][direction]=desc`
       );
 
       if (!response.success || !response.data.records) {
@@ -68,7 +67,7 @@ export class DownloadService {
   }> {
     try {
       const response = await ApiClient.airtableGet(
-        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={user_email}='${userEmail}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+        `/Downloads?filterByFormula={user_email}='${userEmail}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
       );
 
       if (!response.success || !response.data.records) {
@@ -112,7 +111,7 @@ export class DownloadService {
   }> {
     try {
       const response = await ApiClient.airtableGet(
-        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?maxRecords=10000&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+        `/Downloads?maxRecords=10000&sort[0][field]=downloaded_at&sort[0][direction]=desc`
       );
 
       if (!response.success || !response.data.records) {
@@ -155,7 +154,7 @@ export class DownloadService {
 
   static async deleteDownloadRecord(id: string): Promise<void> {
     try {
-      const response = await ApiClient.airtableDelete(`/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads/${id}`);
+      const response = await ApiClient.airtableDelete(`/Downloads/${id}`);
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete download record');
       }
@@ -170,7 +169,7 @@ export class DownloadService {
   ): Promise<DownloadRecord[]> {
     try {
       const response = await ApiClient.airtableGet(
-        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={project_id}='${projectId}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+        `/Downloads?filterByFormula={project_id}='${projectId}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
       );
 
       if (!response.success || !response.data.records) {

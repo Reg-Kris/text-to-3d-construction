@@ -7,7 +7,6 @@
  */
 
 import { ApiClient } from '../api-client';
-import { API_CONFIG } from '../config';
 import { logger } from '../utils/logger';
 
 export interface AirtableRecord {
@@ -117,7 +116,7 @@ export class AirtableProxyClient {
       });
     }
 
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}?${params.toString()}`;
+    const path = `/${tableName}?${params.toString()}`;
     const response = await ApiClient.airtableGet<AirtableResponse>(path);
 
     if (!response.success) {
@@ -136,7 +135,7 @@ export class AirtableProxyClient {
     tableName: string,
     fields: Record<string, any>,
   ): Promise<AirtableRecord> {
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}`;
+    const path = `/${tableName}`;
     const response = await ApiClient.airtablePost<AirtableRecord>(path, {
       fields,
     });
@@ -158,7 +157,7 @@ export class AirtableProxyClient {
     recordId: string,
     fields: Record<string, any>,
   ): Promise<AirtableRecord> {
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}/${recordId}`;
+    const path = `/${tableName}/${recordId}`;
     const response = await ApiClient.airtablePatch<AirtableRecord>(path, {
       fields,
     });
@@ -179,7 +178,7 @@ export class AirtableProxyClient {
     tableName: string,
     recordId: string,
   ): Promise<AirtableRecord> {
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}/${recordId}`;
+    const path = `/${tableName}/${recordId}`;
     const response = await ApiClient.airtableGet<AirtableRecord>(path);
 
     if (!response.success) {
@@ -198,7 +197,7 @@ export class AirtableProxyClient {
     tableName: string,
     records: Array<{ fields: Record<string, any> }>,
   ): Promise<AirtableRecord[]> {
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}`;
+    const path = `/${tableName}`;
     const response = await ApiClient.airtablePost<{
       records: AirtableRecord[];
     }>(path, {
@@ -259,7 +258,7 @@ export class AirtableProxyClient {
    * Delete a record
    */
   static async deleteRecord(tableName: string, recordId: string): Promise<void> {
-    const path = `/${API_CONFIG.AIRTABLE_BASE_ID}/${tableName}/${recordId}`;
+    const path = `/${tableName}/${recordId}`;
     const response = await ApiClient.airtableDelete(path);
 
     if (!response.success) {

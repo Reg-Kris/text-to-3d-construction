@@ -9,39 +9,28 @@ export const IS_DEVELOPMENT = import.meta.env.MODE === 'development';
 export const IS_PRODUCTION = import.meta.env.MODE === 'production';
 
 export const API_CONFIG = {
-  // Client-side configuration (API keys now handled server-side)
-  AIRTABLE_BASE_ID:
-    import.meta.env.VITE_AIRTABLE_BASE_ID || 'your-airtable-base-id',
+  // Client-side configuration (all sensitive data now handled server-side)
   AUTHORIZED_EMAILS: (
     import.meta.env.VITE_AUTHORIZED_EMAILS || 'gerasimovkris@gmail.com'
   ).split(','),
   MESHY_API_URL: 'https://api.meshy.ai/openapi/v1',
   AIRTABLE_API_URL: 'https://api.airtable.com/v0',
-  // Proxy configuration (API keys managed server-side in Netlify functions)
+  // Proxy configuration (API keys and base ID managed server-side in Netlify functions)
   MESHY_PROXY_URL: IS_PRODUCTION
     ? '/.netlify/functions/meshy-proxy'
     : '/.netlify/functions/meshy-proxy',
   AIRTABLE_PROXY_URL: IS_PRODUCTION
     ? '/.netlify/functions/airtable-proxy'
     : '/.netlify/functions/airtable-proxy',
-  USE_PROXY: true, // Always use proxy to avoid CORS issues and secure API keys
+  USE_PROXY: true, // Always use proxy to avoid CORS issues and secure all credentials
 };
 
-// API configuration validation (API keys now validated server-side)
+// API configuration validation (all sensitive data now validated server-side)
 export const validateConfig = () => {
-  const missing = [];
-  
-  if (
-    !API_CONFIG.AIRTABLE_BASE_ID ||
-    API_CONFIG.AIRTABLE_BASE_ID.includes('your-airtable')
-  ) {
-    missing.push('VITE_AIRTABLE_BASE_ID');
-  }
-
-  if (missing.length > 0 && IS_PRODUCTION) {
-    console.error('Missing client-side environment variables:', missing);
-    console.warn('Note: API keys are now managed server-side in Netlify functions');
-    return false;
+  // All sensitive configuration is now handled server-side
+  // Client-side validation is minimal for security
+  if (IS_PRODUCTION) {
+    console.info('All API credentials managed server-side via Netlify functions');
   }
   return true;
 };

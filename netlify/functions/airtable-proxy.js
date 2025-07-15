@@ -124,14 +124,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get API key from environment variables (server-side only)
+    // Get API credentials from environment variables (server-side only)
     const apiKey = process.env.AIRTABLE_PAT;
+    const baseId = process.env.AIRTABLE_BASE_ID;
     
     if (!isValidApiKey(apiKey)) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ error: 'Server configuration error: Invalid Airtable API key' }),
+      };
+    }
+
+    if (!baseId) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Server configuration error: Missing Airtable Base ID' }),
       };
     }
 
@@ -144,8 +153,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Construct Airtable API request
-    const airtableUrl = `${AIRTABLE_API_URL}${path}`;
+    // Construct Airtable API request with server-side base ID
+    // If path doesn't start with base ID, prepend it
+    const normalizedPath = path.startsWith(`/${baseId}`) ? path : `/${baseId}${path}`;
+    const airtableUrl = `${AIRTABLE_API_URL}${normalizedPath}`;
     const airtableHeaders = {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
