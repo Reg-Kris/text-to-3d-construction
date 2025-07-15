@@ -25,15 +25,11 @@ export class ApiClient {
       let requestOptions: RequestInit;
 
       if (API_CONFIG.USE_PROXY) {
-        // Use appropriate proxy
+        // Use appropriate proxy (API keys are now handled server-side)
         const proxyUrl =
           apiType === 'meshy'
             ? API_CONFIG.MESHY_PROXY_URL
             : API_CONFIG.AIRTABLE_PROXY_URL;
-        const apiKey =
-          apiType === 'meshy'
-            ? API_CONFIG.MESHY_API_KEY
-            : API_CONFIG.AIRTABLE_API_KEY;
 
         url = proxyUrl;
         requestOptions = {
@@ -45,29 +41,13 @@ export class ApiClient {
             path,
             method: options.method || 'GET',
             body: options.body ? JSON.parse(options.body as string) : undefined,
-            apiKey: apiKey,
           }),
         };
       } else {
-        // Direct API call for development
-        const baseUrl =
-          apiType === 'meshy'
-            ? API_CONFIG.MESHY_API_URL
-            : API_CONFIG.AIRTABLE_API_URL;
-        const apiKey =
-          apiType === 'meshy'
-            ? API_CONFIG.MESHY_API_KEY
-            : API_CONFIG.AIRTABLE_API_KEY;
-
-        url = `${baseUrl}${path}`;
-        requestOptions = {
-          ...options,
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
-        };
+        // Direct API call for development (deprecated - API keys moved server-side)
+        throw new Error(
+          'Direct API calls are no longer supported. Please use proxy mode (USE_PROXY: true) for security.'
+        );
       }
 
       const response = await fetch(url, requestOptions);

@@ -9,10 +9,7 @@ export const IS_DEVELOPMENT = import.meta.env.MODE === 'development';
 export const IS_PRODUCTION = import.meta.env.MODE === 'production';
 
 export const API_CONFIG = {
-  MESHY_API_KEY:
-    import.meta.env.VITE_MESHY_API_KEY || 'your-meshy-api-key-here',
-  AIRTABLE_API_KEY:
-    import.meta.env.VITE_AIRTABLE_PAT || 'your-airtable-pat-here',
+  // Client-side configuration (API keys now handled server-side)
   AIRTABLE_BASE_ID:
     import.meta.env.VITE_AIRTABLE_BASE_ID || 'your-airtable-base-id',
   AUTHORIZED_EMAILS: (
@@ -20,31 +17,20 @@ export const API_CONFIG = {
   ).split(','),
   MESHY_API_URL: 'https://api.meshy.ai/openapi/v1',
   AIRTABLE_API_URL: 'https://api.airtable.com/v0',
-  // Proxy configuration
+  // Proxy configuration (API keys managed server-side in Netlify functions)
   MESHY_PROXY_URL: IS_PRODUCTION
     ? '/.netlify/functions/meshy-proxy'
     : '/.netlify/functions/meshy-proxy',
   AIRTABLE_PROXY_URL: IS_PRODUCTION
     ? '/.netlify/functions/airtable-proxy'
     : '/.netlify/functions/airtable-proxy',
-  USE_PROXY: true, // Always use proxy to avoid CORS issues
+  USE_PROXY: true, // Always use proxy to avoid CORS issues and secure API keys
 };
 
-// API configuration validation
+// API configuration validation (API keys now validated server-side)
 export const validateConfig = () => {
   const missing = [];
-  if (
-    !API_CONFIG.MESHY_API_KEY ||
-    API_CONFIG.MESHY_API_KEY.includes('your-meshy')
-  ) {
-    missing.push('VITE_MESHY_API_KEY');
-  }
-  if (
-    !API_CONFIG.AIRTABLE_API_KEY ||
-    API_CONFIG.AIRTABLE_API_KEY.includes('your-airtable')
-  ) {
-    missing.push('VITE_AIRTABLE_PAT');
-  }
+  
   if (
     !API_CONFIG.AIRTABLE_BASE_ID ||
     API_CONFIG.AIRTABLE_BASE_ID.includes('your-airtable')
@@ -53,7 +39,8 @@ export const validateConfig = () => {
   }
 
   if (missing.length > 0 && IS_PRODUCTION) {
-    console.error('Missing environment variables:', missing);
+    console.error('Missing client-side environment variables:', missing);
+    console.warn('Note: API keys are now managed server-side in Netlify functions');
     return false;
   }
   return true;

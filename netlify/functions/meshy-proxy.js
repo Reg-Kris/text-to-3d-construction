@@ -94,7 +94,6 @@ exports.handler = async (event, context) => {
       path,
       method = 'GET',
       body: requestBody,
-      apiKey,
     } = JSON.parse(event.body || '{}');
 
     if (!path) {
@@ -105,11 +104,14 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Get API key from environment variables (server-side only)
+    const apiKey = process.env.MESHY_API_KEY;
+    
     if (!isValidApiKey(apiKey)) {
       return {
-        statusCode: 401,
+        statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Invalid or missing API key' }),
+        body: JSON.stringify({ error: 'Server configuration error: Invalid Meshy API key' }),
       };
     }
 

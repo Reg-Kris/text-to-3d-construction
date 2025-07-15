@@ -4,38 +4,37 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import Airtable from 'airtable';
-import { API_CONFIG } from '../config';
+import { ApiClient } from '../api-client';
 
 export class AirtableBase {
-  private static base: Airtable.Base | null = null;
-
-  static initializeBase(): Airtable.Base {
-    if (!this.base) {
-      Airtable.configure({
-        apiKey: API_CONFIG.AIRTABLE_API_KEY,
-      });
-      this.base = Airtable.base(API_CONFIG.AIRTABLE_BASE_ID);
-    }
-    return this.base;
+  /**
+   * @deprecated Direct Airtable connections are deprecated for security.
+   * Use AirtableProxyClient for all Airtable operations instead.
+   */
+  static initializeBase(): never {
+    throw new Error(
+      'Direct Airtable connections are no longer supported for security reasons. ' +
+      'Please use AirtableProxyClient via the secure proxy API.'
+    );
   }
 
-  static getBase(): Airtable.Base {
+  static getBase(): never {
     return this.initializeBase();
   }
 
   static async testConnection(): Promise<boolean> {
     try {
-      const base = this.initializeBase();
-      await base('Projects').select({ maxRecords: 1 }).firstPage();
-      return true;
+      // Test connection via proxy instead
+      const response = await ApiClient.airtableGet('/Projects?maxRecords=1');
+      return response.success;
     } catch (error) {
-      console.error('Airtable connection test failed:', error);
+      console.error('Airtable proxy connection test failed:', error);
       return false;
     }
   }
 
   static resetConnection(): void {
-    this.base = null;
+    // No-op since we don't maintain direct connections anymore
+    console.warn('resetConnection() is deprecated - proxy connections are stateless');
   }
 }

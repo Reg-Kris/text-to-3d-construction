@@ -4,23 +4,24 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { AirtableBase } from './airtable-base';
+import { ApiClient } from '../api-client';
 import { ProjectService } from './project-service';
 import { DownloadRecord } from '../types';
+import { API_CONFIG } from '../config';
 
 export class DownloadService {
   static async recordDownload(
     download: Omit<DownloadRecord, 'id' | 'downloaded_at'>,
   ): Promise<void> {
-    const base = AirtableBase.getBase();
-
     const downloadData = {
-      ...download,
-      downloaded_at: new Date().toISOString(),
+      fields: {
+        ...download,
+        downloaded_at: new Date().toISOString(),
+      },
     };
 
     try {
-      await base('Downloads').create(downloadData);
+      await ApiClient.airtablePost(`/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads`, downloadData);
 
       // Increment download count in Projects table
       if (download.project_id) {
@@ -41,18 +42,16 @@ export class DownloadService {
     userEmail: string,
     limit: number = 50,
   ): Promise<DownloadRecord[]> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Downloads')
-        .select({
-          filterByFormula: `{user_email} = '${userEmail}'`,
-          maxRecords: limit,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await ApiClient.airtableGet(
+        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={user_email}='${userEmail}'&maxRecords=${limit}&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+      );
 
-      return records.map((record) => ({
+      if (!response.success || !response.data.records) {
+        return [];
+      }
+
+      return response.data.records.map((record: any) => ({
         id: record.id,
         ...record.fields,
       })) as DownloadRecord[];
@@ -67,17 +66,20 @@ export class DownloadService {
     formatBreakdown: Record<string, number>;
     recentDownloads: DownloadRecord[];
   }> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Downloads')
-        .select({
-          filterByFormula: `{user_email} = '${userEmail}'`,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await ApiClient.airtableGet(
+        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={user_email}='${userEmail}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+      );
 
-      const downloads = records.map((record) => ({
+      if (!response.success || !response.data.records) {
+        return {
+          totalDownloads: 0,
+          formatBreakdown: {},
+          recentDownloads: [],
+        };
+      }
+
+      const downloads = response.data.records.map((record: any) => ({
         id: record.id,
         ...record.fields,
       })) as DownloadRecord[];
@@ -108,17 +110,20 @@ export class DownloadService {
     popularFormats: Record<string, number>;
     deviceBreakdown: Record<string, number>;
   }> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Downloads')
-        .select({
-          maxRecords: 10000, // Limit for performance
-          sort: [{ field: 'downloaded_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await ApiClient.airtableGet(
+        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?maxRecords=10000&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+      );
 
-      const downloads = records.map((record) => ({
+      if (!response.success || !response.data.records) {
+        return {
+          totalDownloads: 0,
+          popularFormats: {},
+          deviceBreakdown: {},
+        };
+      }
+
+      const downloads = response.data.records.map((record: any) => ({
         id: record.id,
         ...record.fields,
       })) as DownloadRecord[];
@@ -149,10 +154,11 @@ export class DownloadService {
   }
 
   static async deleteDownloadRecord(id: string): Promise<void> {
-    const base = AirtableBase.getBase();
-
     try {
-      await base('Downloads').destroy(id);
+      const response = await ApiClient.airtableDelete(`/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads/${id}`);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete download record');
+      }
     } catch (error) {
       console.error('Failed to delete download record:', error);
       throw new Error('Failed to delete download record from database');
@@ -162,17 +168,16 @@ export class DownloadService {
   static async getDownloadsByProject(
     projectId: string,
   ): Promise<DownloadRecord[]> {
-    const base = AirtableBase.getBase();
-
     try {
-      const records = await base('Downloads')
-        .select({
-          filterByFormula: `{project_id} = '${projectId}'`,
-          sort: [{ field: 'downloaded_at', direction: 'desc' }],
-        })
-        .all();
+      const response = await ApiClient.airtableGet(
+        `/${API_CONFIG.AIRTABLE_BASE_ID}/Downloads?filterByFormula={project_id}='${projectId}'&sort[0][field]=downloaded_at&sort[0][direction]=desc`
+      );
 
-      return records.map((record) => ({
+      if (!response.success || !response.data.records) {
+        return [];
+      }
+
+      return response.data.records.map((record: any) => ({
         id: record.id,
         ...record.fields,
       })) as DownloadRecord[];
