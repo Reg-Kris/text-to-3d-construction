@@ -100,6 +100,7 @@ export class MeshyAPI {
     const payload = {
       mode: 'refine',
       preview_task_id: previewTaskId,
+      enable_pbr: true, // Enable PBR maps for better quality
     };
 
     const response = await ApiClient.post<MeshyTask>('/openapi/v2/text-to-3d', payload);
