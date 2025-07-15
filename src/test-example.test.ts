@@ -1,6 +1,6 @@
 /**
  * Simple Test Example
- * Copyright © 2024 Kristopher Gerasimov. All rights reserved.
+ * Copyright © 2024 Kris. All rights reserved.
  */
 
 import { describe, it, expect } from 'vitest';

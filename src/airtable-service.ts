@@ -1,6 +1,6 @@
 /**
  * Text-to-3D Construction Platform - Airtable Service (Main Export)
- * Copyright © 2024 Kristopher Gerasimov. All rights reserved.
+ * Copyright © 2024 Kris. All rights reserved.
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 

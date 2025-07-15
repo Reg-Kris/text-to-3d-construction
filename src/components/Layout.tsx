@@ -1,6 +1,6 @@
 /**
  * Main Layout Component
- * Copyright © 2024 Kristopher Gerasimov. All rights reserved.
+ * Copyright © 2024 Kris. All rights reserved.
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
