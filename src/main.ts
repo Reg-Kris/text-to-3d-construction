@@ -5,3 +5,4 @@
  */
 
 import './script';
+import './debug-meshy-endpoints';
