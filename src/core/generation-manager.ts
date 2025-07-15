@@ -5,7 +5,6 @@
  */
 
 import { MeshyAPI } from '../meshy-api';
-import { AirtableService } from '../airtable-service';
 import { DeviceUtils } from '../device-utils';
 import {
   AppState,
@@ -26,15 +25,18 @@ export class GenerationManager {
     const deviceSettings = DeviceUtils.getOptimizedSettings(qualitySettings);
     const deviceInfo = DeviceUtils.getDeviceInfo();
 
-    // Create project record in Airtable
-    const project = await AirtableService.createProject({
-      user_email: this.state.currentUser!.email,
+    // Create in-memory project record (no database needed)
+    const project: ProjectRecord = {
+      id: `temp-${Date.now()}`, // Temporary ID for in-memory tracking
+      user_email: this.state.currentUser?.email || 'anonymous@local.dev',
       prompt: prompt,
       status: 'generating',
       device_type: deviceInfo.type,
       art_style: 'realistic',
       polygon_count: deviceSettings.targetPolyCount,
-    });
+      created_at: new Date().toISOString(),
+      download_count: 0,
+    };
 
     const request: GenerationRequest = {
       prompt: prompt,
@@ -49,56 +51,36 @@ export class GenerationManager {
       // Generate the model using Meshy API with progress tracking
       const task = await MeshyAPI.generateModel(request, progressCallback);
 
-      // Update project with completion data
+      // Update in-memory project with completion data
       const generationTime = Math.round(
         (Date.now() - this.state.generationStartTime) / 1000,
       );
-      const updatedProject = await AirtableService.updateProject(project.id!, {
+      
+      const completedProject: ProjectRecord = {
+        ...project,
         status: 'completed',
         model_urls: task.model_urls,
         generation_time_seconds: generationTime,
         thumbnail_url: task.thumbnail_url,
-      });
+      };
 
       return {
         task,
-        project: updatedProject || project,
+        project: completedProject,
       };
     } catch (error) {
-      // Update project with failure status
-      await AirtableService.updateProject(project.id!, {
-        status: 'failed',
-      }).catch(console.error);
-
+      // Update in-memory project with failure status (for potential future use)
+      project.status = 'failed';
       throw error;
     }
   }
 
   async retryGeneration(
-    projectId: string,
-    progressCallback: (stage: string, progress: number) => void,
+    _projectId: string,
+    _progressCallback: (stage: string, progress: number) => void,
   ): Promise<MeshyTask> {
-    const project = await AirtableService.getProject(projectId);
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // Reset project status
-    await AirtableService.updateProject(projectId, {
-      status: 'generating',
-    });
-
-    const qualitySettings: QualitySettings = {
-      quality: 'medium',
-      prioritizeSpeed: false,
-    };
-
-    const result = await this.generateModel(
-      project.prompt,
-      qualitySettings,
-      progressCallback,
-    );
-    return result.task;
+    // For self-contained mode, retry is not supported since we don't persist projects
+    throw new Error('Retry generation is not available in self-contained mode. Please create a new generation instead.');
   }
 
   async cancelGeneration(): Promise<void> {
@@ -106,14 +88,14 @@ export class GenerationManager {
       try {
         await MeshyAPI.cancelTask(this.state.currentTask.id);
 
-        if (this.state.currentProject) {
-          await AirtableService.updateProject(this.state.currentProject.id!, {
-            status: 'failed',
-          });
-        }
-
+        // In self-contained mode, just update the in-memory state
         this.state.currentTask = null;
         this.state.isGenerating = false;
+        
+        // Update current project status if it exists
+        if (this.state.currentProject) {
+          this.state.currentProject.status = 'failed';
+        }
       } catch (error) {
         console.error('Failed to cancel generation:', error);
         throw error;

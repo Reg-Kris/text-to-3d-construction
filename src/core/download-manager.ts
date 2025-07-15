@@ -5,7 +5,6 @@
  */
 
 import { MeshyAPI } from '../meshy-api';
-import { AirtableService } from '../airtable-service';
 import { DeviceUtils } from '../device-utils';
 import { AppState } from '../types';
 
@@ -15,23 +14,9 @@ export class DownloadManager {
   async downloadModel(url: string, extension: string): Promise<void> {
     const filename = `construction-model-${Date.now()}.${extension}`;
 
-    // Record download in Airtable
-    if (this.state.currentProject && this.state.currentUser) {
-      const deviceInfo = DeviceUtils.getDeviceInfo();
-
-      try {
-        await AirtableService.recordDownload({
-          project_id: this.state.currentProject.id!,
-          user_email: this.state.currentUser.email,
-          format: extension,
-          device_type: deviceInfo.type,
-        });
-      } catch (error) {
-        console.warn('Failed to record download:', error);
-        // Don't fail the download if recording fails
-      }
-    }
-
+    // Self-contained mode: skip database recording, just download
+    console.log(`Downloading ${extension} model for project: ${this.state.currentProject?.prompt || 'Unknown'}`);
+    
     // Download the actual file
     await MeshyAPI.downloadModel(url, filename);
   }
@@ -45,18 +30,9 @@ export class DownloadManager {
   }
 
   async getDownloadHistory(): Promise<any[]> {
-    if (!this.state.currentUser) {
-      return [];
-    }
-
-    try {
-      return await AirtableService.getDownloadHistory(
-        this.state.currentUser.email,
-      );
-    } catch (error) {
-      console.error('Failed to get download history:', error);
-      return [];
-    }
+    // Self-contained mode: no download history available
+    console.log('Download history not available in self-contained mode');
+    return [];
   }
 
   async generateDownloadLink(
