@@ -10,14 +10,21 @@ export class MeshyEndpointTester {
       mode: 'preview',
       prompt: 'simple cube',
       art_style: 'realistic',
-      enable_pbr: true,
-      target_polycount: 1000,
-      topology: 'triangle',
-      enable_remesh: false,
+      should_remesh: true,
     };
 
-    // All possible endpoint combinations to test
+    // All possible endpoint combinations to test (now with correct base URL)
     const endpointsToTest = [
+      // The documented correct endpoint first
+      '/openapi/v2/text-to-3d',
+      
+      // Other version 2 variations
+      '/v2/text-to-3d',
+      '/api/v2/text-to-3d', 
+      '/openapi/v2/text-to-3d/generate',
+      '/v2/text-to-3d/generate',
+      '/api/v2/text-to-3d/generate',
+      
       // Version 1 variations
       '/text-to-3d',
       '/v1/text-to-3d', 
@@ -27,14 +34,6 @@ export class MeshyEndpointTester {
       '/v1/text-to-3d/generate',
       '/api/v1/text-to-3d/generate',
       '/openapi/v1/text-to-3d/generate',
-      
-      // Version 2 variations
-      '/v2/text-to-3d',
-      '/api/v2/text-to-3d', 
-      '/openapi/v2/text-to-3d',
-      '/v2/text-to-3d/generate',
-      '/api/v2/text-to-3d/generate',
-      '/openapi/v2/text-to-3d/generate',
       
       // Alternative patterns
       '/text2mesh',

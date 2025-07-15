@@ -6,7 +6,7 @@
  * Netlify Function to proxy Meshy API calls and resolve CORS issues
  */
 
-const MESHY_API_URL = 'https://api.meshy.ai/v1';
+const MESHY_API_URL = 'https://api.meshy.ai';
 
 // Rate limiting map (in production, use Redis or similar)
 const rateLimitMap = new Map();
@@ -119,10 +119,12 @@ exports.handler = async (event, context) => {
     // Get API key from environment variables (server-side only)
     const apiKey = process.env.MESHY_API_KEY;
     
-    // Environment variable check (basic)
+    // Environment variable check (enhanced)
     console.log('API Key status:', {
       hasApiKey: !!process.env.MESHY_API_KEY,
-      keyLength: process.env.MESHY_API_KEY ? process.env.MESHY_API_KEY.length : 0
+      keyLength: process.env.MESHY_API_KEY ? process.env.MESHY_API_KEY.length : 0,
+      keyPrefix: process.env.MESHY_API_KEY ? process.env.MESHY_API_KEY.substring(0, 4) : 'none',
+      validFormat: process.env.MESHY_API_KEY ? process.env.MESHY_API_KEY.startsWith('msy-') : false
     });
     
     if (!isValidApiKey(apiKey)) {
@@ -159,6 +161,7 @@ exports.handler = async (event, context) => {
 
     // Make request to Meshy API
     console.log(`Proxying ${method} request to: ${meshyUrl}`);
+    console.log('Request headers:', JSON.stringify(meshyHeaders, null, 2));
     console.log('Request payload:', requestBody ? JSON.stringify(requestBody, null, 2) : 'none');
     
     const response = await fetch(meshyUrl, fetchOptions);
