@@ -172,6 +172,148 @@ export class MeshyAPI {
     return response.data;
   }
 
+  // Generate model (unified method for tests)
+  static async generateModel(
+    request: GenerationRequest, 
+    progressCallback?: (stage: string, progress: number) => void
+  ): Promise<MeshyTask> {
+    if (!request.prompt || request.prompt.trim() === '') {
+      throw new Error('Prompt is required');
+    }
+
+    const payload = {
+      mode: 'preview',
+      prompt: request.prompt,
+      art_style: request.artStyle || 'realistic',
+      enable_pbr: request.enablePBR || false,
+      seed: request.seed,
+      target_poly_count: request.targetPolyCount,
+      topology: request.topology || 'quad',
+      enable_remesh: request.enableRemesh || false,
+      ai_model: 'meshy-4',
+    };
+
+    const response = await ApiClient.post<{result: string}>('/openapi/v2/text-to-3d', payload);
+
+    if (!response.success) {
+      throw new Error(
+        `Model generation failed: ${response.error || response.message || 'Unknown error'}`,
+      );
+    }
+
+    const taskId = response.data.result;
+    if (!taskId) {
+      throw new Error('Model generation failed: No task ID returned from API');
+    }
+
+    const task = {
+      id: taskId,
+      status: 'PENDING',
+      progress: 0,
+      created_at: new Date().toISOString(),
+    } as MeshyTask;
+
+    // If progress callback is provided, poll for completion
+    if (progressCallback) {
+      return await this.pollTaskUntilComplete(taskId, (progress) => {
+        progressCallback('Generating model...', progress);
+      });
+    }
+
+    return task;
+  }
+
+  // Download model from URL
+  static async downloadModel(url: string): Promise<Blob> {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download model: ${response.statusText}`);
+    }
+    
+    return response.blob();
+  }
+
+  // Poll task until completion
+  static async pollTaskUntilComplete(
+    taskId: string,
+    progressCallback?: (progress: number) => void,
+    maxAttempts: number = 60,
+  ): Promise<MeshyTask> {
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      const task = await this.getTaskStatus(taskId);
+
+      if (task.status === 'SUCCEEDED') {
+        return task;
+      }
+
+      if (task.status === 'FAILED') {
+        throw new Error('3D model generation failed');
+      }
+
+      // Report progress
+      if (progressCallback) {
+        progressCallback(task.progress || 0);
+      }
+
+      // Wait 2 seconds before next poll
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      attempts++;
+    }
+
+    throw new Error('Task polling timed out');
+  }
+
+  // Validate model URLs
+  static validateModelUrls(modelUrls: { [key: string]: string }): boolean {
+    for (const [format, url] of Object.entries(modelUrls)) {
+      if (!url || !this.isValidUrl(url)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Validate model file size
+  static async validateModelSize(url: string, maxSizeBytes: number): Promise<boolean> {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentLength = response.headers.get('content-length');
+      
+      if (!contentLength) {
+        return true; // Can't determine size, assume it's valid
+      }
+      
+      const size = parseInt(contentLength, 10);
+      return size <= maxSizeBytes;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Cancel a task
+  static async cancelTask(taskId: string): Promise<void> {
+    const response = await ApiClient.delete(`/openapi/v2/text-to-3d/${taskId}`);
+    
+    if (!response.success) {
+      throw new Error(
+        `Failed to cancel task: ${response.error || response.message || 'Unknown error'}`,
+      );
+    }
+  }
+
+  // Helper to validate URL format
+  private static isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // Poll for task completion
   static async pollForCompletion(
     taskId: string,

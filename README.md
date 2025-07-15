@@ -84,6 +84,17 @@ See [LICENSE](LICENSE) for full terms and conditions.
 - **API Key Management**: Secure handling of Meshy AI and Airtable credentials
 - **Rate Limiting**: Protection against abuse with intelligent throttling
 - **CORS Resolution**: Secure proxy architecture for API communications
+- **Security Headers**: Comprehensive CSP, HSTS, and security header configuration
+- **Circuit Breaker Pattern**: API resilience with automatic failure detection and recovery
+
+### 📊 **Enterprise Monitoring & Analytics**
+
+- **Sentry Error Tracking**: Real-time error capture with context and performance monitoring
+- **Google Analytics 4**: User behavior analytics with custom event tracking
+- **Web Vitals Monitoring**: Core Web Vitals (LCP, FCP, CLS, INP, TTFB) performance tracking
+- **Memory Usage Monitoring**: Automatic memory leak detection with high-usage alerts
+- **Performance Metrics**: API response times, 3D rendering performance, and device optimization
+- **Circuit Breaker Analytics**: Service health monitoring with automatic fallback mechanisms
 
 ---
 
@@ -326,12 +337,18 @@ Request Validation:
 Create a `.env` file:
 
 ```bash
-# Meshy AI Configuration
-VITE_MESHY_API_KEY=your_meshy_api_key_here
+# NOTE: API keys are now handled server-side in Netlify functions for security
+# No need to set MESHY_API_KEY or AIRTABLE_API_KEY in this file
 
-# Airtable Configuration
-VITE_AIRTABLE_PAT=your_airtable_personal_access_token
-VITE_AIRTABLE_BASE_ID=your_airtable_base_id
+# Sentry Configuration (for error tracking)
+VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+
+# Google Analytics 4 Configuration
+VITE_GA_TRACKING_ID=G-XXXXXXXXXX
+
+# Monitoring Configuration
+VITE_ENABLE_MONITORING=true
+VITE_ENABLE_PERFORMANCE_MONITORING=true
 
 # Access Control
 VITE_AUTHORIZED_EMAILS=email1@domain.com,email2@domain.com
@@ -597,6 +614,15 @@ For licensing inquiries and authorized access, contact: gerasimovkris@gmail.com
 ✅ **Real-time Analytics** - Comprehensive performance monitoring with health scoring  
 ✅ **Optimistic Updates** - Instant UI feedback with automatic conflict resolution  
 ✅ **Intelligent Batching** - Network-optimized API operations with priority management  
+
+### **Enterprise Monitoring & Security**
+
+✅ **Sentry Error Tracking** - Real-time error capture with context and performance tracing  
+✅ **Google Analytics 4** - User behavior analytics with custom event tracking  
+✅ **Web Vitals Monitoring** - Core Web Vitals tracking with automatic optimization  
+✅ **Circuit Breaker Pattern** - API resilience with automatic failure detection and recovery  
+✅ **Memory Leak Prevention** - Automatic cleanup and resource management  
+✅ **Security Headers** - Comprehensive CSP, HSTS, and security configuration  
 
 ### **Enterprise Features**
 
