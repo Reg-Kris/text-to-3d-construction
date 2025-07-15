@@ -119,13 +119,10 @@ exports.handler = async (event, context) => {
     // Get API key from environment variables (server-side only)
     const apiKey = process.env.MESHY_API_KEY;
     
-    // Debug environment variables  
-    console.log('Environment check:', {
+    // Environment variable check (basic)
+    console.log('API Key status:', {
       hasApiKey: !!process.env.MESHY_API_KEY,
-      envKeys: Object.keys(process.env).filter(key => key.includes('MESHY')),
-      allEnvKeys: Object.keys(process.env).sort(),
-      nodeEnv: process.env.NODE_ENV,
-      netlifyEnv: process.env.NETLIFY,
+      keyLength: process.env.MESHY_API_KEY ? process.env.MESHY_API_KEY.length : 0
     });
     
     if (!isValidApiKey(apiKey)) {
@@ -162,6 +159,8 @@ exports.handler = async (event, context) => {
 
     // Make request to Meshy API
     console.log(`Proxying ${method} request to: ${meshyUrl}`);
+    console.log('Request payload:', requestBody ? JSON.stringify(requestBody, null, 2) : 'none');
+    
     const response = await fetch(meshyUrl, fetchOptions);
 
     const responseData = await response.text();
@@ -173,8 +172,33 @@ exports.handler = async (event, context) => {
       jsonData = { raw: responseData };
     }
 
-    // Log for debugging (remove in production)
-    console.log(`Meshy API response status: ${response.status}`);
+    // Enhanced logging for debugging
+    console.log(`Meshy API response:`, {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      data: jsonData
+    });
+
+    // If the request failed, include more details in the response
+    if (!response.ok) {
+      return {
+        statusCode: response.status,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          status: response.status,
+          error: jsonData.error || jsonData.message || response.statusText || 'API request failed',
+          data: jsonData,
+          debug: {
+            url: meshyUrl,
+            method: method,
+            statusText: response.statusText
+          }
+        }),
+      };
+    }
 
     return {
       statusCode: response.status,

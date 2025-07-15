@@ -67,19 +67,32 @@ export class MeshyAPI {
       mode: 'preview',
       prompt: request.prompt,
       art_style: request.artStyle || 'realistic',
-      enable_pbr: request.enablePBR || true,
+      enable_pbr: request.enablePBR !== false, // Default to true unless explicitly false
       target_polycount: optimizedPolyCount,
       topology: request.topology || 'triangle',
       enable_remesh: request.enableRemesh !== false,
       ...(request.seed && { seed: request.seed }),
     };
 
+    logger.info('Creating Meshy preview task', undefined, {
+      prompt: request.prompt,
+      polyCount: optimizedPolyCount,
+      artStyle: request.artStyle || 'realistic',
+      capabilities
+    });
+
     const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
     if (!response.success) {
-      throw new Error(
-        `Preview task failed: ${response.error || response.message || 'Unknown error'}`,
-      );
+      logger.error('Meshy API createPreviewTask failed', undefined, {
+        status: response.status,
+        error: response.error,
+        message: response.message,
+        data: response.data
+      });
+      
+      const errorMessage = response.error || response.message || `HTTP ${response.status}` || 'Unknown error';
+      throw new Error(`Preview task failed: ${errorMessage}`);
     }
 
     return response.data;
