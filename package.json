@@ -18,9 +18,10 @@
     "vite": "^5.3.3"
   },
   "dependencies": {
-    "@types/three": "^0.163.0",
+    "@google/model-viewer": "^4.1.0",
+    "@types/three": "^0.172.0",
     "airtable": "^0.12.2",
-    "three": "^0.163.0"
+    "three": "^0.172.0"
   },
   "keywords": [
     "3d",

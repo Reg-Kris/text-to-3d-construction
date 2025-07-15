@@ -4,286 +4,151 @@
  * PROPRIETARY SOFTWARE - NOT OPEN SOURCE
  */
 
-import { DeviceUtils } from '../device-utils';
-import { User, ModelInfo, MeshyTask, QualitySettings } from '../types';
+import type { MeshyTask } from '../types';
+import type { ModelInfo } from '../viewer/google-model-viewer';
+import type { ConstructionApp } from './app';
+import { DownloadManager } from './download-manager';
+
+export interface QualitySettings {
+  quality: 'low' | 'medium' | 'high';
+  prioritizeSpeed: boolean;
+}
 
 export class UIManager {
-  showMainInterface(user: User) {
-    const container = document.querySelector('.container');
-    if (!container) return;
+  private viewerContainer: HTMLElement | null = null;
+  private loadingElement: HTMLElement | null = null;
+  private downloadSection: HTMLElement | null = null;
+  private progressBar: HTMLElement | null = null;
+  private progressText: HTMLElement | null = null;
 
-    const deviceInfo = DeviceUtils.getDeviceInfo();
-    const warnings = DeviceUtils.getPerformanceWarnings();
+  constructor() {
+    this.setupUI();
+  }
 
-    const welcomeDiv = document.createElement('div');
-    welcomeDiv.className = 'welcome-section';
-    welcomeDiv.innerHTML = `
+  private setupUI() {
+    // Initialize UI elements
+    this.loadingElement = document.getElementById('loading');
+    this.downloadSection = document.getElementById('download-section');
+  }
+
+  showError(message: string): void {
+    // Create or update error message element
+    let errorElement = document.querySelector('.error-message') as HTMLElement;
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'error-message';
+      
+      const container = document.querySelector('.container');
+      if (container) {
+        container.insertBefore(errorElement, container.firstChild);
+      }
+    }
+    
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      if (errorElement) {
+        errorElement.style.display = 'none';
+      }
+    }, 5000);
+  }
+
+  showSuccess(message: string): void {
+    // Create or update success message element
+    let successElement = document.querySelector('.success-message') as HTMLElement;
+    if (!successElement) {
+      successElement = document.createElement('div');
+      successElement.className = 'success-message';
+      
+      const container = document.querySelector('.container');
+      if (container) {
+        container.insertBefore(successElement, container.firstChild);
+      }
+    }
+    
+    successElement.textContent = message;
+    successElement.style.display = 'block';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      if (successElement) {
+        successElement.style.display = 'none';
+      }
+    }, 3000);
+  }
+
+  showMainInterface(user: any): void {
+    // Create welcome section
+    const welcomeSection = document.createElement('div');
+    welcomeSection.className = 'welcome-section';
+    welcomeSection.innerHTML = `
       <div class="user-info">
-        <span>Welcome, ${user.name}</span>
-        <button onclick="app.logout()" class="logout-btn">Logout</button>
-      </div>
-      <div class="device-info">
-        <small>Device: ${deviceInfo.type} | Max polygons: ${deviceInfo.maxPolyCount.toLocaleString()} | File limit: ${deviceInfo.maxFileSizeMB}MB</small>
-        ${warnings.length > 0 ? `<div class="warnings">${warnings.map((w) => `<div class="warning">⚠️ ${w}</div>`).join('')}</div>` : ''}
+        <span>Welcome, ${user.name || 'User'}!</span>
+        <button class="logout-btn" onclick="app.logout()">Logout</button>
       </div>
     `;
-
-    container.insertBefore(welcomeDiv, container.firstChild);
-
-    if (DeviceUtils.shouldShowQualityOptions()) {
-      this.addQualitySettings();
+    
+    const container = document.querySelector('.container');
+    if (container) {
+      container.insertBefore(welcomeSection, container.firstChild);
+    }
+    
+    // Update background color to dark theme
+    document.body.style.backgroundColor = '#1a1a1a';
+    document.body.style.color = '#ffffff';
+    
+    // Update container styling
+    if (container) {
+      (container as HTMLElement).style.backgroundColor = '#2a2a2a';
+      (container as HTMLElement).style.borderRadius = '8px';
+      (container as HTMLElement).style.padding = '30px';
+      (container as HTMLElement).style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
     }
   }
 
-  private addQualitySettings() {
-    const inputSection = document.querySelector('.input-section');
-    if (!inputSection) return;
-
-    const qualityDiv = document.createElement('div');
-    qualityDiv.className = 'quality-settings';
-    qualityDiv.innerHTML = `
-      <div class="settings-row">
-        <label for="quality-select">Quality:</label>
-        <select id="quality-select">
-          <option value="medium" selected>Balanced (Recommended)</option>
-          <option value="low">Fast (Lower Quality)</option>
-          <option value="high">High Quality (Slower)</option>
-        </select>
-      </div>
-      <div class="settings-row">
-        <label>
-          <input type="checkbox" id="prioritize-speed"> Prioritize Speed
-        </label>
-      </div>
-    `;
-
-    inputSection.appendChild(qualityDiv);
-  }
-
-  createOrGetViewerContainer(): HTMLElement | null {
-    let viewerContainer = document.getElementById('viewer-container');
-
-    if (!viewerContainer) {
+  createOrGetViewerContainer(): HTMLElement {
+    if (!this.viewerContainer) {
+      this.viewerContainer = document.createElement('div');
+      this.viewerContainer.id = 'viewer-container';
+      this.viewerContainer.style.width = '100%';
+      this.viewerContainer.style.height = '500px';
+      this.viewerContainer.style.marginTop = '20px';
+      this.viewerContainer.style.borderRadius = '8px';
+      this.viewerContainer.style.overflow = 'hidden';
+      this.viewerContainer.style.backgroundColor = '#2a2a2a';
+      this.viewerContainer.style.display = 'none';
+      
       const outputSection = document.querySelector('.output-section');
       if (outputSection) {
-        const container = document.createElement('div');
-        container.id = 'viewer-container';
-        container.style.width = '100%';
-        container.style.height = '400px';
-        container.style.display = 'none';
-        container.style.border = '1px solid #ddd';
-        container.style.borderRadius = '5px';
-        container.style.marginBottom = '20px';
-
-        const downloadSection = document.getElementById('download-section');
-        if (downloadSection) {
-          outputSection.insertBefore(container, downloadSection);
-        } else {
-          outputSection.appendChild(container);
-        }
-
-        viewerContainer = container;
+        outputSection.insertBefore(this.viewerContainer, outputSection.firstChild);
       }
     }
-
-    return viewerContainer;
-  }
-
-  showViewer() {
-    const viewerContainer = document.getElementById('viewer-container');
-    if (viewerContainer) {
-      viewerContainer.style.display = 'block';
-    }
-  }
-
-  hideViewer() {
-    const viewerContainer = document.getElementById('viewer-container');
-    if (viewerContainer) {
-      viewerContainer.style.display = 'none';
-    }
-
-    const modelInfo = document.querySelector('.model-info');
-    if (modelInfo) {
-      modelInfo.remove();
-    }
-  }
-
-  addViewerControls(_app: any) {
-    const viewerContainer = document.getElementById('viewer-container');
-    if (!viewerContainer) return;
-
-    const existingControls = viewerContainer.querySelector('.viewer-controls');
-    if (existingControls) {
-      existingControls.remove();
-    }
-
-    const controlsDiv = document.createElement('div');
-    controlsDiv.className = 'viewer-controls';
-    controlsDiv.innerHTML = `
-      <div class="control-group">
-        <button class="viewer-btn" onclick="app.setViewMode('perspective')">3D</button>
-        <button class="viewer-btn" onclick="app.setViewMode('top')">Top</button>
-        <button class="viewer-btn" onclick="app.setViewMode('front')">Front</button>
-        <button class="viewer-btn" onclick="app.setViewMode('side')">Side</button>
-        <button class="viewer-btn" onclick="app.resetCamera()">Reset</button>
-        <button class="viewer-btn" onclick="app.takeScreenshot()">📷</button>
-      </div>
-      ${
-        DeviceUtils.getDeviceInfo().isMobile ||
-        DeviceUtils.getDeviceInfo().isTablet
-          ? `
-        <div class="control-group">
-          <button class="viewer-btn" onclick="app.toggleLOD()" id="lod-toggle">LOD: ON</button>
-          <select class="viewer-select" onchange="app.setLODLevel(this.value)" id="lod-level">
-            <option value="0">High Quality</option>
-            <option value="1">Medium Quality</option>
-            <option value="2">Low Quality</option>
-          </select>
-        </div>
-      `
-          : ''
-      }
-    `;
-
-    viewerContainer.appendChild(controlsDiv);
-  }
-
-  showModelInfo(info: ModelInfo) {
-    const deviceInfo = DeviceUtils.getDeviceInfo();
-    const isHighPoly = info.triangles > deviceInfo.maxPolyCount;
-
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'model-info';
-    infoDiv.innerHTML = `
-      <div class="model-stats">
-        <h4>Model Information</h4>
-        <div class="stats-grid">
-          <div class="stat">
-            <label>Triangles:</label>
-            <span class="${isHighPoly ? 'warning' : ''}">${info.triangles.toLocaleString()}</span>
-          </div>
-          <div class="stat">
-            <label>Vertices:</label>
-            <span>${info.vertices.toLocaleString()}</span>
-          </div>
-          <div class="stat">
-            <label>Memory:</label>
-            <span>${info.memoryUsage}MB</span>
-          </div>
-        </div>
-        ${isHighPoly ? '<div class="warning">⚠️ High polygon count may affect performance on this device</div>' : ''}
-      </div>
-    `;
-
-    const viewerContainer = document.getElementById('viewer-container');
-    if (viewerContainer && viewerContainer.parentNode) {
-      viewerContainer.parentNode.insertBefore(
-        infoDiv,
-        viewerContainer.nextSibling,
-      );
-    }
-  }
-
-  showDownloadOptions(task: MeshyTask, _app: any) {
-    const downloadSection = document.getElementById('download-section');
-    if (!downloadSection || !task.model_urls) return;
-
-    const deviceInfo = DeviceUtils.getDeviceInfo();
-    const recommendedFormat = DeviceUtils.getRecommendedFormat();
-
-    const formats = [
-      {
-        key: 'glb',
-        label: 'GLB (Recommended for Unreal Engine 5)',
-        extension: 'glb',
-      },
-      {
-        key: 'fbx',
-        label: 'FBX (Traditional Unreal Engine)',
-        extension: 'fbx',
-      },
-      {
-        key: 'usdz',
-        label: 'USDZ (Universal Scene Description)',
-        extension: 'usdz',
-      },
-      { key: 'obj', label: 'OBJ (Wavefront)', extension: 'obj' },
-    ];
-
-    const availableFormats = formats.filter((format) => {
-      const hasUrl =
-        task.model_urls![format.key as keyof typeof task.model_urls];
-      const isSupported = deviceInfo.recommendedFormats.includes(format.key);
-      return hasUrl && (deviceInfo.isDesktop || isSupported);
-    });
-
-    const buttonsHTML = availableFormats
-      .map((format) => {
-        const isRecommended = format.key === recommendedFormat;
-        const estimatedTime = DeviceUtils.estimateLoadTime(
-          deviceInfo.maxFileSizeMB * 0.7,
-        );
-
-        return `
-          <div class="download-option">
-            <button onclick="app.downloadModel('${task.model_urls![format.key as keyof typeof task.model_urls]}', '${format.extension}')" 
-                    class="download-btn ${isRecommended ? 'recommended' : ''}">
-              ${isRecommended ? '⭐ ' : ''}Download ${format.label}
-            </button>
-            <div class="download-info">
-              <small>Est. download time: ${estimatedTime}</small>
-              ${isRecommended ? '<span class="badge">Recommended</span>' : ''}
-            </div>
-          </div>
-        `;
-      })
-      .join('');
-
-    downloadSection.innerHTML = `
-      <div class="download-options">
-        <h3>Download Options</h3>
-        <div class="device-notice">
-          <small>Optimized for ${deviceInfo.type} devices (${deviceInfo.maxFileSizeMB}MB limit)</small>
-        </div>
-        ${buttonsHTML}
-      </div>
-    `;
-
-    downloadSection.style.display = 'block';
-  }
-
-  hideDownload() {
-    const downloadSection = document.getElementById('download-section');
-    if (downloadSection) {
-      downloadSection.style.display = 'none';
-    }
+    
+    return this.viewerContainer;
   }
 
   getPrompt(): string {
-    const promptElement = document.getElementById(
-      'prompt',
-    ) as HTMLTextAreaElement;
-    return promptElement?.value.trim() || '';
+    const promptElement = document.getElementById('prompt') as HTMLTextAreaElement;
+    return promptElement ? promptElement.value.trim() : '';
   }
 
   getQualitySettings(): QualitySettings {
-    const qualitySelect = document.getElementById(
-      'quality-select',
-    ) as HTMLSelectElement;
-    const prioritizeSpeedCheckbox = document.getElementById(
-      'prioritize-speed',
-    ) as HTMLInputElement;
-
+    // For now, return default settings
+    // These would be configurable in a future UI
     return {
-      quality: (qualitySelect?.value as 'low' | 'medium' | 'high') || 'medium',
-      prioritizeSpeed: prioritizeSpeedCheckbox?.checked || false,
+      quality: 'high',
+      prioritizeSpeed: false,
     };
   }
 
-  showLoading(message: string) {
-    const loading = document.getElementById('loading');
-    if (loading) {
-      loading.innerHTML = `
+  showLoading(message: string): void {
+    if (this.loadingElement) {
+      this.loadingElement.style.display = 'block';
+      
+      // Create enhanced loading content
+      this.loadingElement.innerHTML = `
         <div class="loading-content">
           <div class="loading-message">${message}</div>
           <div class="progress-bar">
@@ -292,56 +157,257 @@ export class UIManager {
           <div class="progress-text">0%</div>
         </div>
       `;
-      loading.style.display = 'block';
+      
+      // Cache progress elements
+      this.progressBar = this.loadingElement.querySelector('.progress-fill');
+      this.progressText = this.loadingElement.querySelector('.progress-text');
     }
   }
 
-  updateProgress(stage: string, progress: number) {
-    const loading = document.getElementById('loading');
-    if (loading) {
-      const messageEl = loading.querySelector('.loading-message');
-      const progressFill = loading.querySelector(
-        '.progress-fill',
-      ) as HTMLElement;
-      const progressText = loading.querySelector('.progress-text');
-
-      if (messageEl) messageEl.textContent = stage;
-      if (progressFill) progressFill.style.width = `${progress}%`;
-      if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+  hideLoading(): void {
+    if (this.loadingElement) {
+      this.loadingElement.style.display = 'none';
     }
   }
 
-  hideLoading() {
-    const loading = document.getElementById('loading');
-    if (loading) {
-      loading.style.display = 'none';
+  updateProgress(stage: string, progress: number): void {
+    if (this.loadingElement) {
+      const messageElement = this.loadingElement.querySelector('.loading-message');
+      if (messageElement) {
+        messageElement.textContent = stage;
+      }
+      
+      if (this.progressBar) {
+        this.progressBar.style.width = `${progress}%`;
+      }
+      
+      if (this.progressText) {
+        this.progressText.textContent = `${Math.round(progress)}%`;
+      }
     }
   }
 
-  showError(message: string) {
-    alert(message);
-    console.error(message);
-  }
-
-  showSuccess(message: string) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-message';
-    successDiv.textContent = message;
-
-    const container = document.querySelector('.container');
-    if (container) {
-      container.appendChild(successDiv);
-
-      setTimeout(() => {
-        successDiv.remove();
-      }, 3000);
+  showViewer(): void {
+    if (this.viewerContainer) {
+      this.viewerContainer.style.display = 'block';
     }
   }
 
-  updateLODButton(enabled: boolean) {
-    const toggleBtn = document.getElementById('lod-toggle');
-    if (toggleBtn) {
-      toggleBtn.textContent = `LOD: ${enabled ? 'ON' : 'OFF'}`;
+  hideViewer(): void {
+    if (this.viewerContainer) {
+      this.viewerContainer.style.display = 'none';
     }
+  }
+
+  addViewerControls(_app: ConstructionApp): void {
+    if (!this.viewerContainer) return;
+    
+    // Remove existing controls
+    const existingControls = this.viewerContainer.querySelector('.viewer-controls');
+    if (existingControls) {
+      existingControls.remove();
+    }
+    
+    // Create new controls
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'viewer-controls';
+    controlsDiv.innerHTML = `
+      <div class="control-group">
+        <button class="viewer-btn" onclick="app.resetCamera()">Reset Camera</button>
+        <button class="viewer-btn" onclick="app.takeScreenshot()">Screenshot</button>
+        <button class="viewer-btn" onclick="app.toggleAutoRotate()">Toggle Rotation</button>
+      </div>
+      <div class="control-group">
+        <label for="exposure-slider">Exposure:</label>
+        <input type="range" id="exposure-slider" min="0" max="2" step="0.1" value="1" 
+               onchange="app.setExposure(this.value)">
+      </div>
+      <div class="control-group">
+        <label for="shadow-slider">Shadow:</label>
+        <input type="range" id="shadow-slider" min="0" max="1" step="0.1" value="0.5" 
+               onchange="app.setShadowIntensity(this.value)">
+      </div>
+    `;
+    
+    this.viewerContainer.appendChild(controlsDiv);
+  }
+
+  showModelInfo(modelInfo: ModelInfo): void {
+    // Create model info section
+    let modelInfoSection = document.querySelector('.model-info');
+    if (!modelInfoSection) {
+      modelInfoSection = document.createElement('div');
+      modelInfoSection.className = 'model-info';
+      
+      const outputSection = document.querySelector('.output-section');
+      if (outputSection) {
+        outputSection.appendChild(modelInfoSection);
+      }
+    }
+    
+    modelInfoSection.innerHTML = `
+      <div class="model-stats">
+        <h4>Model Information</h4>
+        <div class="stats-grid">
+          <div class="stat">
+            <label>Supported Formats</label>
+            <span>${modelInfo.formats.join(', ')}</span>
+          </div>
+          <div class="stat">
+            <label>Status</label>
+            <span style="color: #4CAF50;">Ready</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  showDownloadOptions(task: MeshyTask, app: ConstructionApp): void {
+    if (!this.downloadSection) return;
+    
+    this.downloadSection.style.display = 'block';
+    
+    const formats = task.model_urls || {};
+    const availableFormats = Object.keys(formats);
+    
+    let downloadHTML = `
+      <div class="download-options">
+        <h3>Download 3D Model</h3>
+        <div class="download-categories">
+          <div class="download-category">
+            <h4>🎮 Game Engines</h4>
+            <div class="engine-downloads">
+              ${this.renderEngineDownloads(formats, 'unreal', 'Unreal Engine', app)}
+              ${this.renderEngineDownloads(formats, 'unity', 'Unity', app)}
+            </div>
+          </div>
+          
+          <div class="download-category">
+            <h4>🎨 3D Software</h4>
+            <div class="software-downloads">
+              ${this.renderEngineDownloads(formats, 'blender', 'Blender', app)}
+              ${this.renderGeneralDownloads(formats, ['obj'], '3D Software (OBJ)', app)}
+            </div>
+          </div>
+          
+          <div class="download-category">
+            <h4>🌐 Web & AR</h4>
+            <div class="web-downloads">
+              ${this.renderGeneralDownloads(formats, ['glb'], 'Web/Three.js', app)}
+              ${this.renderGeneralDownloads(formats, ['usdz'], 'iOS AR', app)}
+            </div>
+          </div>
+          
+          <div class="download-category">
+            <h4>🖨️ 3D Printing</h4>
+            <div class="printing-downloads">
+              ${this.renderGeneralDownloads(formats, ['stl'], '3D Printing', app)}
+            </div>
+          </div>
+        </div>
+        
+        <div class="download-all-section">
+          <h4>📦 Download All Available Formats</h4>
+          <button class="download-btn download-all-btn" onclick="app.downloadAllFormats()">
+            Download All (${availableFormats.length} formats)
+          </button>
+        </div>
+      </div>
+    `;
+    
+    this.downloadSection.innerHTML = downloadHTML;
+  }
+
+  private renderEngineDownloads(formats: Record<string, string>, engine: string, displayName: string, _app: ConstructionApp): string {
+    const supportedFormats = DownloadManager.getFormatsForEngine(engine);
+    const availableFormats = supportedFormats.filter(format => formats[format]);
+    
+    if (availableFormats.length === 0) {
+      return `
+        <div class="engine-download-item unavailable">
+          <div class="engine-name">${displayName}</div>
+          <div class="engine-status">No compatible formats available</div>
+        </div>
+      `;
+    }
+
+    const bestFormat = this.getBestFormatForEngine(availableFormats, engine);
+    const formatInfo = DownloadManager.getFormatInfo(bestFormat);
+    
+    return `
+      <div class="engine-download-item">
+        <div class="engine-info">
+          <div class="engine-name">${displayName}</div>
+          <div class="engine-format">Best: ${formatInfo?.name} - ${formatInfo?.description}</div>
+          <div class="engine-formats">Available: ${availableFormats.map(f => DownloadManager.getFormatInfo(f)?.name).join(', ')}</div>
+        </div>
+        <div class="engine-actions">
+          <button class="download-btn engine-btn" onclick="app.downloadForEngine('${engine}')">
+            Download for ${displayName}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderGeneralDownloads(formats: Record<string, string>, targetFormats: string[], displayName: string, _app: ConstructionApp): string {
+    const availableFormats = targetFormats.filter(format => formats[format]);
+    
+    if (availableFormats.length === 0) {
+      return `
+        <div class="general-download-item unavailable">
+          <div class="format-name">${displayName}</div>
+          <div class="format-status">Not available</div>
+        </div>
+      `;
+    }
+
+    const format = availableFormats[0];
+    const formatInfo = DownloadManager.getFormatInfo(format);
+    const url = formats[format];
+    
+    return `
+      <div class="general-download-item">
+        <div class="format-info">
+          <div class="format-name">${displayName}</div>
+          <div class="format-desc">${formatInfo?.description}</div>
+          <div class="format-use-case">${formatInfo?.useCase}</div>
+        </div>
+        <div class="format-actions">
+          <button class="download-btn format-btn" onclick="app.downloadModel('${url}', '${format}')">
+            Download ${formatInfo?.name}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private getBestFormatForEngine(availableFormats: string[], engine: string): string {
+    const priorities = {
+      unreal: ['fbx', 'obj', 'glb'],
+      unity: ['fbx', 'obj', 'glb'],
+      blender: ['blend', 'fbx', 'obj', 'glb']
+    };
+
+    const enginePriorities = priorities[engine as keyof typeof priorities] || ['fbx', 'obj', 'glb'];
+    
+    for (const format of enginePriorities) {
+      if (availableFormats.includes(format)) {
+        return format;
+      }
+    }
+
+    return availableFormats[0]; // Fallback to first available
+  }
+
+  hideDownload(): void {
+    if (this.downloadSection) {
+      this.downloadSection.style.display = 'none';
+    }
+  }
+
+  updateLODButton(_enabled: boolean): void {
+    // For model-viewer, we don't have LOD controls
+    // This method is kept for compatibility
   }
 }
