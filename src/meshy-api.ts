@@ -78,7 +78,7 @@ export class MeshyAPI {
       capabilities
     });
 
-    const response = await ApiClient.post<MeshyTask>('/openapi/v2/text-to-3d', payload);
+    const response = await ApiClient.post<{result: string}>('/openapi/v2/text-to-3d', payload);
 
     if (!response.success) {
       logger.error('Meshy API createPreviewTask failed', undefined, {
@@ -92,7 +92,21 @@ export class MeshyAPI {
       throw new Error(`Preview task failed: ${errorMessage}`);
     }
 
-    return response.data;
+    // Meshy API returns {result: "task-id"}, but we need a MeshyTask object
+    // Create a minimal task object with the ID
+    const taskId = response.data.result;
+    if (!taskId) {
+      throw new Error('Preview task failed: No task ID returned from API');
+    }
+
+    logger.info('Preview task created', undefined, { taskId });
+    
+    return {
+      id: taskId,
+      status: 'PENDING',
+      progress: 0,
+      created_at: Date.now().toString(),
+    } as MeshyTask;
   }
 
   // Stage 2: Create refine task
@@ -103,7 +117,7 @@ export class MeshyAPI {
       enable_pbr: true, // Enable PBR maps for better quality
     };
 
-    const response = await ApiClient.post<MeshyTask>('/openapi/v2/text-to-3d', payload);
+    const response = await ApiClient.post<{result: string}>('/openapi/v2/text-to-3d', payload);
 
     if (!response.success) {
       throw new Error(
@@ -111,18 +125,47 @@ export class MeshyAPI {
       );
     }
 
-    return response.data;
+    // Meshy API returns {result: "task-id"}, extract the task ID
+    const taskId = response.data.result;
+    if (!taskId) {
+      throw new Error('Refine task failed: No task ID returned from API');
+    }
+
+    logger.info('Refine task created', undefined, { taskId });
+    
+    return {
+      id: taskId,
+      status: 'PENDING',
+      progress: 0,
+      created_at: Date.now().toString(),
+    } as MeshyTask;
   }
 
   // Get task status
   static async getTaskStatus(taskId: string): Promise<MeshyTask> {
+    logger.info('Getting task status', undefined, { taskId });
+    
     const response = await ApiClient.get<MeshyTask>(`/openapi/v2/text-to-3d/${taskId}`);
 
     if (!response.success) {
+      logger.error('Task status failed', undefined, {
+        taskId,
+        status: response.status,
+        error: response.error,
+        message: response.message,
+        data: response.data
+      });
+      
       throw new Error(
         `Task status failed: ${response.error || response.message || 'Unknown error'}`,
       );
     }
+
+    logger.info('Task status retrieved', undefined, { 
+      taskId, 
+      status: response.data.status, 
+      progress: response.data.progress 
+    });
 
     return response.data;
   }
