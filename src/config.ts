@@ -13,7 +13,7 @@ export const API_CONFIG = {
   AUTHORIZED_EMAILS: (
     import.meta.env.VITE_AUTHORIZED_EMAILS || 'gerasimovkris@gmail.com'
   ).split(','),
-  MESHY_API_URL: 'https://api.meshy.ai/openapi/v1',
+  MESHY_API_URL: 'https://api.meshy.ai/v1',
   AIRTABLE_API_URL: 'https://api.airtable.com/v0',
   // Proxy configuration (API keys and base ID managed server-side in Netlify functions)
   MESHY_PROXY_URL: IS_PRODUCTION

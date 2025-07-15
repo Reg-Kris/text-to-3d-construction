@@ -81,7 +81,7 @@ export class MeshyAPI {
       capabilities
     });
 
-    const response = await ApiClient.post<MeshyTask>('/v2/text-to-3d', payload);
+    const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
     if (!response.success) {
       logger.error('Meshy API createPreviewTask failed', undefined, {
@@ -105,7 +105,7 @@ export class MeshyAPI {
       preview_task_id: previewTaskId,
     };
 
-    const response = await ApiClient.post<MeshyTask>('/v2/text-to-3d', payload);
+    const response = await ApiClient.post<MeshyTask>('/text-to-3d', payload);
 
     if (!response.success) {
       throw new Error(
@@ -118,7 +118,7 @@ export class MeshyAPI {
 
   // Get task status
   static async getTaskStatus(taskId: string): Promise<MeshyTask> {
-    const response = await ApiClient.get<MeshyTask>(`/v2/text-to-3d/${taskId}`);
+    const response = await ApiClient.get<MeshyTask>(`/text-to-3d/${taskId}`);
 
     if (!response.success) {
       throw new Error(
@@ -209,7 +209,7 @@ export class MeshyAPI {
 
   // Cancel task
   static async cancelTask(taskId: string): Promise<void> {
-    const response = await ApiClient.delete(`/v2/text-to-3d/${taskId}`);
+    const response = await ApiClient.delete(`/text-to-3d/${taskId}`);
 
     if (!response.success) {
       throw new Error(

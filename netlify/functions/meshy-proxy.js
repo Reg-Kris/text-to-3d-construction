@@ -6,7 +6,7 @@
  * Netlify Function to proxy Meshy API calls and resolve CORS issues
  */
 
-const MESHY_API_URL = 'https://api.meshy.ai/openapi/v1';
+const MESHY_API_URL = 'https://api.meshy.ai/v1';
 
 // Rate limiting map (in production, use Redis or similar)
 const rateLimitMap = new Map();
