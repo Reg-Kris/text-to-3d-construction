@@ -39,7 +39,19 @@ function checkRateLimit(ip) {
 
 // Validate API key format (basic security)
 function isValidApiKey(apiKey) {
-  return apiKey && typeof apiKey === 'string' && apiKey.length > 20;
+  // More lenient validation - just check it exists and is a non-empty string
+  const isValid = apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0;
+  
+  // Debug logging (remove in production)
+  console.log('API Key validation:', {
+    exists: !!apiKey,
+    type: typeof apiKey,
+    length: apiKey ? apiKey.length : 0,
+    firstChars: apiKey ? apiKey.substring(0, 8) + '...' : 'none',
+    isValid
+  });
+  
+  return isValid;
 }
 
 // Clean up rate limit map periodically
@@ -107,11 +119,27 @@ exports.handler = async (event, context) => {
     // Get API key from environment variables (server-side only)
     const apiKey = process.env.MESHY_API_KEY;
     
+    // Debug environment variables  
+    console.log('Environment check:', {
+      hasApiKey: !!process.env.MESHY_API_KEY,
+      envKeys: Object.keys(process.env).filter(key => key.includes('MESHY')),
+      allEnvKeys: Object.keys(process.env).sort(),
+      nodeEnv: process.env.NODE_ENV,
+      netlifyEnv: process.env.NETLIFY,
+    });
+    
     if (!isValidApiKey(apiKey)) {
+      console.error('API key validation failed');
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Server configuration error: Invalid Meshy API key' }),
+        body: JSON.stringify({ 
+          error: 'Server configuration error: Invalid Meshy API key',
+          debug: {
+            hasKey: !!apiKey,
+            keyLength: apiKey ? apiKey.length : 0
+          }
+        }),
       };
     }
 
