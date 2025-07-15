@@ -54,18 +54,18 @@ function isValidApiKey(apiKey) {
   return isValid;
 }
 
-// Clean up rate limit map periodically
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [ip, record] of rateLimitMap.entries()) {
-      if (now > record.resetTime) {
-        rateLimitMap.delete(ip);
-      }
-    }
-  },
-  5 * 60 * 1000,
-); // Cleanup every 5 minutes
+// Rate limiting disabled for paid plan users
+// setInterval(
+//   () => {
+//     const now = Date.now();
+//     for (const [ip, record] of rateLimitMap.entries()) {
+//       if (now > record.resetTime) {
+//         rateLimitMap.delete(ip);
+//       }
+//     }
+//   },
+//   5 * 60 * 1000,
+// ); // Cleanup every 5 minutes
 
 exports.handler = async (event, context) => {
   // CORS headers
@@ -86,20 +86,20 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Rate limiting
-    const clientIp =
-      event.headers['x-forwarded-for'] ||
-      event.headers['x-real-ip'] ||
-      'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return {
-        statusCode: 429,
-        headers,
-        body: JSON.stringify({
-          error: 'Rate limit exceeded. Please try again later.',
-        }),
-      };
-    }
+    // Rate limiting disabled for paid plan users
+    // const clientIp =
+    //   event.headers['x-forwarded-for'] ||
+    //   event.headers['x-real-ip'] ||
+    //   'unknown';
+    // if (!checkRateLimit(clientIp)) {
+    //   return {
+    //     statusCode: 429,
+    //     headers,
+    //     body: JSON.stringify({
+    //       error: 'Rate limit exceeded. Please try again later.',
+    //     }),
+    //   };
+    // }
 
     // Parse request
     const {
