@@ -9,35 +9,8 @@
     <title>Construction 3D Generator - Proprietary Software</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
-  <body style="display: none">
-    <div class="container">
-      <h1>Construction 3D Model Generator</h1>
-
-      <div class="input-section">
-        <textarea
-          id="prompt"
-          placeholder="Describe your construction project...
-Example: 2-bedroom prefab cabin with solar panels
-Max 600 characters"
-          maxlength="600"
-        ></textarea>
-        <div class="char-counter">
-          <span id="char-count">0</span>/600 characters
-        </div>
-        <button onclick="generateModel()">Generate 3D Model</button>
-      </div>
-
-      <div class="output-section">
-        <div id="loading" style="display: none">Generating 3D model...</div>
-
-        <!-- Three.js viewer container will be created dynamically -->
-
-        <div id="download-section" style="display: none">
-          <!-- Download options will be populated dynamically -->
-        </div>
-      </div>
-    </div>
-
+  <body>
+    <div id="root"></div>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

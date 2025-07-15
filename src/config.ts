@@ -8,6 +8,14 @@
 export const IS_DEVELOPMENT = import.meta.env.MODE === 'development';
 export const IS_PRODUCTION = import.meta.env.MODE === 'production';
 
+// Monitoring configuration
+export const MONITORING_CONFIG = {
+  SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
+  GA_TRACKING_ID: import.meta.env.VITE_GA_TRACKING_ID,
+  ENABLE_MONITORING: import.meta.env.VITE_ENABLE_MONITORING !== 'false',
+  ENABLE_PERFORMANCE_MONITORING: import.meta.env.VITE_ENABLE_PERFORMANCE_MONITORING !== 'false',
+};
+
 export const API_CONFIG = {
   // Client-side configuration (all sensitive data now handled server-side)
   AUTHORIZED_EMAILS: (

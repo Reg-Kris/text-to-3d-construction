@@ -29,6 +29,8 @@ export class GoogleModelViewer {
   private modelViewer: any; // model-viewer element
   private container: HTMLElement;
   private currentModelUrl: string | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private isDestroyed = false;
   // private loadingPromise: Promise<void> | null = null;
 
   constructor(config: ModelViewerConfig) {
@@ -65,6 +67,9 @@ export class GoogleModelViewer {
     
     // Add to container
     this.container.appendChild(this.modelViewer);
+    
+    // Set up resize observer for responsive behavior
+    this.setupResizeObserver();
     
     logger.info('Google Model Viewer initialized', 'GoogleModelViewer');
   }
@@ -320,6 +325,57 @@ export class GoogleModelViewer {
     } else {
       this.modelViewer.removeAttribute('auto-rotate');
     }
+  }
+
+  private setupResizeObserver(): void {
+    if (!ResizeObserver) {
+      return; // ResizeObserver not supported
+    }
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.isDestroyed) return;
+      
+      // Update model viewer size
+      const width = this.container.clientWidth;
+      const height = this.container.clientHeight;
+      
+      this.modelViewer.style.width = `${width}px`;
+      this.modelViewer.style.height = `${height}px`;
+    });
+
+    this.resizeObserver.observe(this.container);
+  }
+
+  // Memory management and cleanup
+  destroy(): void {
+    if (this.isDestroyed) return;
+    this.isDestroyed = true;
+
+    // Clean up resize observer
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    // Remove event listeners by cloning the element
+    if (this.modelViewer && this.modelViewer.parentNode) {
+      const newModelViewer = this.modelViewer.cloneNode(false);
+      this.modelViewer.parentNode.replaceChild(newModelViewer, this.modelViewer);
+    }
+
+    // Clear model URL to release memory
+    this.currentModelUrl = null;
+
+    // Remove from container
+    if (this.container && this.modelViewer) {
+      try {
+        this.container.removeChild(this.modelViewer);
+      } catch (error) {
+        // Element might already be removed
+      }
+    }
+
+    logger.info('GoogleModelViewer destroyed', 'GoogleModelViewer');
   }
 
   // Animation controls

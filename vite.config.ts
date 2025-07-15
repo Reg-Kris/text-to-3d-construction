@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   server: {
     port: 3000,
     open: true,
@@ -31,6 +33,14 @@ export default defineConfig({
       output: {
         // Intelligent chunking strategy (2025 best practices)
         manualChunks(id) {
+          // React core libraries
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-core';
+          }
+          // Material-UI
+          if (id.includes('@mui') || id.includes('@emotion')) {
+            return 'mui';
+          }
           // Core Three.js library
           if (id.includes('three') && !id.includes('three/examples')) {
             return 'three-core';
@@ -85,7 +95,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['three', 'airtable'],
+    include: ['three', 'airtable', 'react', 'react-dom', '@mui/material', '@emotion/react', '@emotion/styled'],
     // Pre-bundle these for faster dev startup
     force: true,
   },
