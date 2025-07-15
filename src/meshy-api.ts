@@ -68,6 +68,7 @@ export class MeshyAPI {
       prompt: request.prompt,
       art_style: request.artStyle || 'realistic',
       should_remesh: request.enableRemesh !== false,
+      ai_model: 'meshy-4', // Use meshy-4 for PBR compatibility
       ...(request.seed && { seed: request.seed }),
     };
 
@@ -115,6 +116,7 @@ export class MeshyAPI {
       mode: 'refine',
       preview_task_id: previewTaskId,
       enable_pbr: true, // Enable PBR maps for better quality
+      ai_model: 'meshy-4', // Required for PBR support
     };
 
     const response = await ApiClient.post<{result: string}>('/openapi/v2/text-to-3d', payload);
